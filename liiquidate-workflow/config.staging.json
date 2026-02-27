@@ -1,0 +1,13 @@
+{
+  "evms": [
+    {
+      "WethUsdPriceOracle": "0xaeEffddcC3095DC4037D58B654a371b7Ff679F30",
+      "WbtcUsdPriceOracle": "0x0000000000000000000000000000000000000000",
+      "proxyAddress": "0xB4758B38D8f8d54886ff5b0F7B78e566733CDFbD",
+      "liiBorrowAddress": "0x3f26685991D09eCd40227Efb7649Ca2A371708CC",
+      "liiBorrowAdapter": "0xb4Bae94D879888EbB1e3f8e4D73ddD9a49dACFC9",
+      "chainSelectorName": "ethereum-testnet-sepolia",
+      "gasLimit": "1500000"
+    }
+  ]
+}
