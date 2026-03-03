@@ -2773,6 +2773,19 @@ var init_unit = __esm(() => {
     wei: 18
   };
 });
+function formatUnits(value2, decimals) {
+  let display = value2.toString();
+  const negative = display.startsWith("-");
+  if (negative)
+    display = display.slice(1);
+  display = display.padStart(decimals, "0");
+  let [integer, fraction] = [
+    display.slice(0, display.length - decimals),
+    display.slice(display.length - decimals)
+  ];
+  fraction = fraction.replace(/(0+)$/, "");
+  return `${negative ? "-" : ""}${integer || "0"}${fraction ? `.${fraction}` : ""}`;
+}
 function decodeFunctionResult(parameters) {
   const { abi, args, functionName, data } = parameters;
   let abiItem = abi[0];
@@ -6995,6 +7008,45 @@ var KeyType;
   KeyType2[KeyType2["UNSPECIFIED"] = 0] = "UNSPECIFIED";
   KeyType2[KeyType2["ECDSA_EVM"] = 1] = "ECDSA_EVM";
 })(KeyType || (KeyType = {}));
+var file_capabilities_scheduler_cron_v1_trigger = /* @__PURE__ */ fileDesc("CixjYXBhYmlsaXRpZXMvc2NoZWR1bGVyL2Nyb24vdjEvdHJpZ2dlci5wcm90bxIeY2FwYWJpbGl0aWVzLnNjaGVkdWxlci5jcm9uLnYxIhoKBkNvbmZpZxIQCghzY2hlZHVsZRgBIAEoCSJHCgdQYXlsb2FkEjwKGHNjaGVkdWxlZF9leGVjdXRpb25fdGltZRgBIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiNQoNTGVnYWN5UGF5bG9hZBIgChhzY2hlZHVsZWRfZXhlY3V0aW9uX3RpbWUYASABKAk6AhgBMvUBCgRDcm9uElwKB1RyaWdnZXISJi5jYXBhYmlsaXRpZXMuc2NoZWR1bGVyLmNyb24udjEuQ29uZmlnGicuY2FwYWJpbGl0aWVzLnNjaGVkdWxlci5jcm9uLnYxLlBheWxvYWQwARJzCg1MZWdhY3lUcmlnZ2VyEiYuY2FwYWJpbGl0aWVzLnNjaGVkdWxlci5jcm9uLnYxLkNvbmZpZxotLmNhcGFiaWxpdGllcy5zY2hlZHVsZXIuY3Jvbi52MS5MZWdhY3lQYXlsb2FkIgmIAgGKtRgCCAEwARoagrUYFggBEhJjcm9uLXRyaWdnZXJAMS4wLjBCzQEKImNvbS5jYXBhYmlsaXRpZXMuc2NoZWR1bGVyLmNyb24udjFCDFRyaWdnZXJQcm90b1ABogIDQ1NDqgIeQ2FwYWJpbGl0aWVzLlNjaGVkdWxlci5Dcm9uLlYxygIeQ2FwYWJpbGl0aWVzXFNjaGVkdWxlclxDcm9uXFYx4gIqQ2FwYWJpbGl0aWVzXFNjaGVkdWxlclxDcm9uXFYxXEdQQk1ldGFkYXRh6gIhQ2FwYWJpbGl0aWVzOjpTY2hlZHVsZXI6OkNyb246OlYxYgZwcm90bzM", [file_google_protobuf_timestamp, file_tools_generator_v1alpha_cre_metadata]);
+var ConfigSchema2 = /* @__PURE__ */ messageDesc(file_capabilities_scheduler_cron_v1_trigger, 0);
+var PayloadSchema2 = /* @__PURE__ */ messageDesc(file_capabilities_scheduler_cron_v1_trigger, 1);
+
+class CronCapability {
+  static CAPABILITY_ID = "cron-trigger@1.0.0";
+  static CAPABILITY_NAME = "cron-trigger";
+  static CAPABILITY_VERSION = "1.0.0";
+  trigger(config) {
+    const capabilityId = CronCapability.CAPABILITY_ID;
+    return new CronTrigger(config, capabilityId, "Trigger");
+  }
+}
+
+class CronTrigger {
+  _capabilityId;
+  _method;
+  config;
+  constructor(config, _capabilityId, _method) {
+    this._capabilityId = _capabilityId;
+    this._method = _method;
+    this.config = config.$typeName ? config : fromJson(ConfigSchema2, config);
+  }
+  capabilityId() {
+    return this._capabilityId;
+  }
+  method() {
+    return this._method;
+  }
+  outputSchema() {
+    return PayloadSchema2;
+  }
+  configAsAny() {
+    return anyPack(ConfigSchema2, this.config);
+  }
+  adapt(rawOutput) {
+    return rawOutput;
+  }
+}
 var lookup = [];
 var revLookup = [];
 var code = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -16996,6 +17048,7 @@ init_decodeFunctionResult();
 init_encodeAbiParameters();
 init_encodeFunctionData();
 init_toBytes();
+init_toHex();
 init_keccak256();
 var LiiBorrowV1 = [
   {
@@ -17158,10 +17211,180 @@ var LiquidatorAdapter = [
     stateMutability: "nonpayable"
   }
 ];
+var Aave = [
+  {
+    type: "function",
+    name: "getUserAccountData",
+    inputs: [
+      {
+        name: "custodian",
+        type: "address",
+        internalType: "address"
+      }
+    ],
+    outputs: [
+      {
+        name: "collateralUSD",
+        type: "uint256",
+        internalType: "uint256"
+      },
+      {
+        name: "debtUSD",
+        type: "uint256",
+        internalType: "uint256"
+      },
+      {
+        name: "canBorrowUSD",
+        type: "uint256",
+        internalType: "uint256"
+      },
+      {
+        name: "canBorrowUSDC",
+        type: "uint256",
+        internalType: "uint256"
+      },
+      {
+        name: "_currentLiquidationThreshold",
+        type: "uint256",
+        internalType: "uint256"
+      },
+      {
+        name: "_ltv",
+        type: "uint256",
+        internalType: "uint256"
+      }
+    ],
+    stateMutability: "view"
+  },
+  {
+    type: "function",
+    name: "getHealthFactor",
+    inputs: [
+      {
+        name: "custodian",
+        type: "address",
+        internalType: "address"
+      }
+    ],
+    outputs: [
+      {
+        name: "hf",
+        type: "uint256",
+        internalType: "uint256"
+      },
+      {
+        name: "status",
+        type: "uint8",
+        internalType: "enum HealthStatus"
+      }
+    ],
+    stateMutability: "view"
+  },
+  {
+    type: "function",
+    name: "getVariableDebt",
+    inputs: [
+      {
+        name: "custodian",
+        type: "address",
+        internalType: "address"
+      },
+      {
+        name: "asset",
+        type: "address",
+        internalType: "address"
+      }
+    ],
+    outputs: [
+      {
+        name: "",
+        type: "uint256",
+        internalType: "uint256"
+      }
+    ],
+    stateMutability: "view"
+  },
+  {
+    type: "function",
+    name: "getSupplyBalance",
+    inputs: [
+      {
+        name: "custodian",
+        type: "address",
+        internalType: "address"
+      },
+      {
+        name: "asset",
+        type: "address",
+        internalType: "address"
+      }
+    ],
+    outputs: [
+      {
+        name: "",
+        type: "uint256",
+        internalType: "uint256"
+      }
+    ],
+    stateMutability: "view"
+  }
+];
+var Multicall3 = [
+  {
+    inputs: [
+      {
+        components: [
+          {
+            internalType: "address",
+            name: "target",
+            type: "address"
+          },
+          {
+            internalType: "bool",
+            name: "allowFailure",
+            type: "bool"
+          },
+          {
+            internalType: "bytes",
+            name: "callData",
+            type: "bytes"
+          }
+        ],
+        internalType: "struct Multicall3.Call3[]",
+        name: "calls",
+        type: "tuple[]"
+      }
+    ],
+    name: "aggregate3",
+    outputs: [
+      {
+        components: [
+          {
+            internalType: "bool",
+            name: "success",
+            type: "bool"
+          },
+          {
+            internalType: "bytes",
+            name: "returnData",
+            type: "bytes"
+          }
+        ],
+        internalType: "struct Multicall3.Result[]",
+        name: "returnData",
+        type: "tuple[]"
+      }
+    ],
+    stateMutability: "payable",
+    type: "function"
+  }
+];
 var evmConfigSchema = exports_external.object({
+  schedule: exports_external.string(),
   WethUsdPriceOracle: exports_external.string().regex(/^0x[a-fA-F0-9]{40}$/u, "WethUsdPriceOracle must be a 0x-prefixed 20-byte hex"),
   WbtcUsdPriceOracle: exports_external.string().regex(/^0x[a-fA-F0-9]{40}$/u, "WbtcUsdPriceOracle must be a 0x-prefixed 20-byte hex"),
   proxyAddress: exports_external.string().regex(/^0x[a-fA-F0-9]{40}$/u, "proxyAddress must be a 0x-prefixed 20-byte hex"),
+  AaveAddress: exports_external.string().regex(/^0x[a-fA-F0-9]{40}$/u, "AaveAddress must be a 0x-prefixed 20-byte hex"),
   liiBorrowAddress: exports_external.string().regex(/^0x[a-fA-F0-9]{40}$/u, "liiBorrowAddress must be a 0x-prefixed 20-byte hex"),
   liiBorrowAdapter: exports_external.string().regex(/^0x[a-fA-F0-9]{40}$/u, "liiBorrowAdapter must be a 0x-prefixed 20-byte hex"),
   chainSelectorName: exports_external.string().min(1),
@@ -17172,8 +17395,8 @@ var configSchema = exports_external.object({
 });
 var BASE_POSITION_URL = "https://elyzpintovurrcxcrumg.supabase.co/rest/v1/positions";
 var BASE_ORACLE_URL = "https://elyzpintovurrcxcrumg.supabase.co/rest/v1/oracles";
-function writePositionToSupabase(runtime2, data) {
-  runtime2.log(`>>> Writing to Supabase`);
+function writePositionsToSupabase(runtime2, data) {
+  runtime2.log(`>>> Writing position to Supabase`);
   const supabaseServiceKey = runtime2.getSecret({ id: "SUPABASE_KEY" }).result();
   const httpClient = new ClientCapability2;
   const result = httpClient.sendRequest(runtime2, upsertPositionData(data, supabaseServiceKey.value), consensusIdenticalAggregation())().result();
@@ -17202,7 +17425,33 @@ var upsertPositionData = (dataToSend, secretKey) => (sendRequester) => {
   }
   return true;
 };
-function readPositionFromSupabase(runtime2, token) {
+function readAllPositionsFromSupabase(runtime2) {
+  const supabaseServiceKey = runtime2.getSecret({ id: "SUPABASE_KEY" }).result();
+  const httpClient = new ClientCapability2;
+  const result = httpClient.sendRequest(runtime2, readAllPositions(supabaseServiceKey.value), consensusIdenticalAggregation())().result();
+  runtime2.log(`Successfully read data`);
+  return result;
+}
+var readAllPositions = (secretKey) => (sendRequester) => {
+  const filter = `select=user,protocol,chain,collateral`;
+  const req = {
+    url: `${BASE_POSITION_URL}?${filter}`,
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${secretKey}`,
+      apikey: secretKey
+    },
+    cacheSettings: {
+      store: true
+    }
+  };
+  const resp = sendRequester.sendRequest(req).result();
+  if (!ok(resp))
+    throw new Error(`HTTP request failed with status: ${resp.statusCode}`);
+  const bodyText = new TextDecoder().decode(resp.body);
+  return JSON.parse(bodyText);
+};
+function readPositionsFromSupabase(runtime2, token) {
   const supabaseServiceKey = runtime2.getSecret({ id: "SUPABASE_KEY" }).result();
   const httpClient = new ClientCapability2;
   const result = httpClient.sendRequest(runtime2, readPositions(supabaseServiceKey.value, token), consensusIdenticalAggregation())().result();
@@ -17219,8 +17468,7 @@ var readPositions = (secretKey, token) => (sendRequester) => {
       apikey: secretKey
     },
     cacheSettings: {
-      store: true,
-      maxAgeMs: 60000
+      store: true
     }
   };
   const resp = sendRequester.sendRequest(req).result();
@@ -17262,72 +17510,87 @@ var readUserPositions = (secretKey, user, chain) => (sendRequester) => {
   };
 };
 function writeOracleToSupabase(runtime2, data) {
+  runtime2.log(`>>> Writing new price to Supabase`);
   const supabaseServiceKey = runtime2.getSecret({ id: "SUPABASE_KEY" }).result();
   const httpClient = new ClientCapability2;
   const result = httpClient.sendRequest(runtime2, upsertOracleData(data, supabaseServiceKey.value), consensusIdenticalAggregation())().result();
-  runtime2.log(`Successfully sent data to Supabase. Status: ${result ? "Success" : "Failure"}`);
-  return "Success";
+  return result ? "Success" : "Failure";
 }
 var upsertOracleData = (dataToSend, secretKey) => (sendRequester) => {
   const bodyBytes = new TextEncoder().encode(JSON.stringify(dataToSend));
   const body = Buffer.from(bodyBytes).toString("base64");
   const req = {
-    url: `${BASE_ORACLE_URL}?on_conflict=collateral`,
+    url: `${BASE_ORACLE_URL}?on_conflict=collateral,chain`,
     method: "POST",
     body,
     headers: {
       Authorization: `Bearer ${secretKey}`,
       apikey: secretKey,
       "Content-Type": "application/json",
-      Prefer: "resolution=merge-duplicates, return=minimal"
+      Prefer: "resolution=merge-duplicates,return=minimal"
     },
     cacheSettings: {
-      store: true,
-      maxAgeMs: 60000
+      store: true
     }
   };
   const resp = sendRequester.sendRequest(req).result();
   if (!ok(resp)) {
     throw new Error(`HTTP request failed with status: ${resp.statusCode}`);
   }
-  if (resp.statusCode !== 201 && resp.statusCode !== 204) {
-    throw new Error(`Unexpected status code: ${resp.statusCode}`);
-  }
   return true;
 };
-function readOraclesFromSupabase(runtime2, oracle) {
+function readOraclesFromSupabase(runtime2, collateral) {
   const supabaseServiceKey = runtime2.getSecret({ id: "SUPABASE_KEY" }).result();
   const httpClient = new ClientCapability2;
-  const result = httpClient.sendRequest(runtime2, readOracles(supabaseServiceKey.value, oracle), consensusIdenticalAggregation())().result();
-  runtime2.log(`Successfully read oracle data!`);
+  const result = httpClient.sendRequest(runtime2, readOracles(supabaseServiceKey.value, collateral), consensusIdenticalAggregation())().result();
+  runtime2.log(`- Successfully read oracle data!`);
   return result;
 }
-var readOracles = (secretKey, oracle) => (sendRequester) => {
+var readOracles = (secretKey, collateral) => (sendRequester) => {
+  const filter = `collateral=eq.${collateral}&select=price,last_update`;
   const req = {
-    url: `${BASE_ORACLE_URL}?oracle=eq.${oracle}&select=price,last_update`,
+    url: `${BASE_ORACLE_URL}?${filter}`,
     method: "GET",
     headers: {
       Authorization: `Bearer ${secretKey}`,
       apikey: secretKey,
-      Accept: "application/vnd.pgrst.object+json"
+      Accept: "application/json"
     },
     cacheSettings: {
-      store: true,
-      maxAgeMs: 60000
+      store: true
     }
   };
   const resp = sendRequester.sendRequest(req).result();
   if (!ok(resp))
     throw new Error(`HTTP request failed with status: ${resp.statusCode}`);
   const bodyText = new TextDecoder().decode(resp.body);
-  return JSON.parse(bodyText);
+  const row = JSON.parse(bodyText);
+  if (row.length == 0) {
+    return {
+      price: "0",
+      last_update: "0"
+    };
+  }
+  return row[0];
 };
+var BASE_HF = parseEther("1");
 var HOT_HF = parseEther("1.05");
 var WARM_HF = parseEther("1.15");
-var STALENESS_THRESHOLD = 3600n;
 var USDC = "0xf8340a3BB21282Af32B567e0ACE1Cc5c4eF63a73";
+var MULTICALL3_ADDRESS = "0xcA11bde05977b3631167028862bE2a173976CA11";
 var ORACLES_MAP = {
-  "0xaeEffddcC3095DC4037D58B654a371b7Ff679F30": "0x394A1145Cc4480cD047ad065a5Ece23D4fcC2E1d"
+  "0xaeeffddcc3095dc4037d58b654a371b7ff679f30": "0x394A1145Cc4480cD047ad065a5Ece23D4fcC2E1d"
+};
+var supportedAssets = ["WETH"];
+var ASSET_DATA = {
+  WETH: {
+    address: "0x394A1145Cc4480cD047ad065a5Ece23D4fcC2E1d",
+    decimals: 18
+  },
+  USDC: {
+    address: "0xf8340a3BB21282Af32B567e0ACE1Cc5c4eF63a73",
+    decimals: 6
+  }
 };
 function getRiskStatus(runtime2, user, chain) {
   const { riskMetric } = getCurrentPosition(runtime2, user, chain);
@@ -17343,35 +17606,166 @@ function getRiskStatus(runtime2, user, chain) {
     status
   };
 }
-function isStale(last) {
-  const now = BigInt(Math.floor(Date.now() / 1000));
-  return now - last > STALENESS_THRESHOLD;
-}
 function checkIfLiquidatable(runtime2, chain, positions) {
   runtime2.log(">>> Checking for liquidatable positions.");
+  const evmConfig = runtime2.config.evms[chain];
+  const network248 = getNetwork({
+    chainFamily: "evm",
+    chainSelectorName: evmConfig.chainSelectorName,
+    isTestnet: true
+  });
+  if (!network248)
+    throw new Error(`Network not found for chain: ${evmConfig.chainSelectorName}`);
+  const evmClient = new ClientCapability(network248.chainSelector.selector);
+  const riskStates = _batchGetRiskStates(runtime2, evmClient, evmConfig, positions);
+  const liquidatable = positions.filter((_, i2) => riskStates[i2].liquidatable);
+  if (liquidatable.length === 0) {
+    runtime2.log("No liquidatable positions found.");
+    return [];
+  }
+  const liquidationData = _batchGetLiquidationData(runtime2, evmClient, evmConfig, liquidatable);
   const validPositions = [];
-  for (let i2 = 0;i2 < positions.length; i2++) {
-    const { liquidatable } = getCurrentPosition(runtime2, positions[i2].user, chain);
-    if (!liquidatable)
-      continue;
-    const allCollateralSupply = getUserCollateral(runtime2, positions[i2].user, chain);
-    const { maxDebtToCover, actualReturn } = getLiquidationStatus(runtime2, positions[i2].user, positions[i2].collateral, chain);
-    const usdcAmount = getUsdcAmount(runtime2, maxDebtToCover, chain);
-    for (let j = 0;j < allCollateralSupply.length; j++) {
-      if (allCollateralSupply[j].value < actualReturn)
+  for (let i2 = 0;i2 < liquidatable.length; i2++) {
+    const { collaterals, liquidationStatus, usdcAmount } = liquidationData[i2];
+    for (let j = 0;j < collaterals.length; j++) {
+      if (collaterals[j].value < liquidationStatus.actualReturn)
         continue;
       const position = {
-        protocol: positions[i2].protocol,
-        user: positions[i2].user,
-        collateralAsset: allCollateralSupply[j].collateral,
+        protocol: liquidatable[i2].protocol,
+        user: liquidatable[i2].user,
+        collateralAsset: collaterals[j].collateral,
         debtAsset: USDC,
         debtToCover: usdcAmount
       };
-      runtime2.log(`Protocol: ${position.protocol}, User: ${position.user}, Collateral: ${position.collateralAsset} Debt: ${position.debtAsset}, DebtoCover: ${position.debtToCover}`);
+      runtime2.log(`Protocol: ${position.protocol}, User: ${position.user}, Collateral: ${position.collateralAsset}, Debt: ${position.debtAsset}, DebtToCover: ${position.debtToCover}`);
       validPositions.push(position);
     }
   }
   return validPositions;
+}
+function updatePositions(runtime2) {
+  const positions = readAllPositionsFromSupabase(runtime2);
+  const byChain = positions.reduce((acc, position) => {
+    const chain = position.chain ?? 0;
+    if (!acc[chain])
+      acc[chain] = [];
+    acc[chain].push(position);
+    return acc;
+  }, {});
+  const updates = [];
+  for (const chain in byChain) {
+    const chainPositions = byChain[chain];
+    const riskStates = batchGetRiskStates(runtime2, chainPositions, Number(chain));
+    for (let i2 = 0;i2 < chainPositions.length; i2++) {
+      runtime2.log(`User: ${chainPositions[i2].user}, HF: ${riskStates[i2].hf}`);
+      updates.push({
+        user: chainPositions[i2].user ?? "",
+        protocol: chainPositions[i2].protocol ?? "",
+        chain: Number(chain),
+        collateral: chainPositions[i2].collateral,
+        hf: riskStates[i2].hf,
+        status: riskStates[i2].status
+      });
+    }
+  }
+  const resp = writePositionsToSupabase(runtime2, updates);
+  runtime2.log(`Batch updated ${updates.length} positions: ${resp}`);
+}
+function _batchGetRiskStates(runtime2, evmClient, evmConfig, positions) {
+  const calls = positions.map((p) => ({
+    target: evmConfig.liiBorrowAdapter,
+    allowFailure: true,
+    callData: encodeFunctionData({
+      abi: LiquidatorAdapter,
+      functionName: "getRiskState",
+      args: [p.user]
+    })
+  }));
+  const results = _executeMulticall(runtime2, evmClient, calls);
+  return results.map((result, i2) => {
+    if (!result.success)
+      throw new Error(`getRiskState failed for ${positions[i2].user}`);
+    return decodeFunctionResult({
+      abi: LiquidatorAdapter,
+      functionName: "getRiskState",
+      data: result.returnData
+    });
+  });
+}
+function _batchGetLiquidationData(runtime2, evmClient, evmConfig, liquidatablePositions) {
+  const callsRoundA = liquidatablePositions.flatMap((p) => [
+    {
+      target: evmConfig.liiBorrowAddress,
+      allowFailure: true,
+      callData: encodeFunctionData({
+        abi: LiiBorrowV1,
+        functionName: "getUserSuppliedCollateralAmount",
+        args: [p.user]
+      })
+    },
+    {
+      target: evmConfig.liiBorrowAdapter,
+      allowFailure: true,
+      callData: encodeFunctionData({
+        abi: LiquidatorAdapter,
+        functionName: "getLiquidationStatus",
+        args: [p.user, p.collateral]
+      })
+    }
+  ]);
+  const resultsA = _executeMulticall(runtime2, evmClient, callsRoundA);
+  const roundADecoded = liquidatablePositions.map((p, i2) => {
+    const collaterals = decodeFunctionResult({
+      abi: LiiBorrowV1,
+      functionName: "getUserSuppliedCollateralAmount",
+      data: resultsA[i2 * 2].returnData
+    });
+    const liquidationStatus = decodeFunctionResult({
+      abi: LiquidatorAdapter,
+      functionName: "getLiquidationStatus",
+      data: resultsA[i2 * 2 + 1].returnData
+    });
+    return { collaterals, liquidationStatus };
+  });
+  const callsRoundB = roundADecoded.map(({ liquidationStatus }) => ({
+    target: evmConfig.liiBorrowAddress,
+    allowFailure: true,
+    callData: encodeFunctionData({
+      abi: LiiBorrowV1,
+      functionName: "getCollateralAmount",
+      args: [USDC, liquidationStatus.maxDebtToCover]
+    })
+  }));
+  const resultsB = _executeMulticall(runtime2, evmClient, callsRoundB);
+  return roundADecoded.map(({ collaterals, liquidationStatus }, i2) => ({
+    collaterals,
+    liquidationStatus,
+    usdcAmount: decodeFunctionResult({
+      abi: LiiBorrowV1,
+      functionName: "getCollateralAmount",
+      data: resultsB[i2].returnData
+    })
+  }));
+}
+function _executeMulticall(runtime2, evmClient, calls) {
+  const multicallData = encodeFunctionData({
+    abi: Multicall3,
+    functionName: "aggregate3",
+    args: [calls]
+  });
+  const result = evmClient.callContract(runtime2, {
+    call: encodeCallMsg({
+      from: zeroAddress,
+      to: MULTICALL3_ADDRESS,
+      data: multicallData
+    }),
+    blockNumber: LATEST_BLOCK_NUMBER
+  }).result();
+  return [...decodeFunctionResult({
+    abi: Multicall3,
+    functionName: "aggregate3",
+    data: bytesToHex2(result.data)
+  })];
 }
 function liquidatePositions(runtime2, positions, chain) {
   runtime2.log(`>>> Liquidating ${positions.length} positions.`);
@@ -17449,41 +17843,67 @@ function getCurrentPosition(runtime2, user, chain) {
     debtUSD: position.debtUSD
   };
 }
-function getUsdcAmount(runtime2, value2, chain) {
+function batchGetRiskStates(runtime2, positions, chain) {
   const evmConfig = runtime2.config.evms[chain];
   const network248 = getNetwork({
     chainFamily: "evm",
     chainSelectorName: evmConfig.chainSelectorName,
     isTestnet: true
   });
-  if (!network248) {
-    throw new Error(`Network not found for chain selector name: ${evmConfig.chainSelectorName}`);
-  }
+  if (!network248)
+    throw new Error(`Network not found for chain: ${evmConfig.chainSelectorName}`);
   const evmClient = new ClientCapability(network248.chainSelector.selector);
-  const callData = encodeFunctionData({
-    abi: LiiBorrowV1,
-    functionName: "getCollateralAmount",
-    args: [USDC, value2]
+  const calls = positions.map((position) => ({
+    target: evmConfig.liiBorrowAdapter,
+    allowFailure: true,
+    callData: encodeFunctionData({
+      abi: LiquidatorAdapter,
+      functionName: "getRiskState",
+      args: [position.user]
+    })
+  }));
+  const multicallData = encodeFunctionData({
+    abi: Multicall3,
+    functionName: "aggregate3",
+    args: [calls]
   });
   const contractCall = evmClient.callContract(runtime2, {
     call: encodeCallMsg({
       from: zeroAddress,
-      to: evmConfig.liiBorrowAddress,
-      data: callData
+      to: MULTICALL3_ADDRESS,
+      data: multicallData
     }),
     blockNumber: LATEST_BLOCK_NUMBER
   }).result();
-  const amount = decodeFunctionResult({
-    abi: LiiBorrowV1,
-    functionName: "getCollateralAmount",
+  const results = decodeFunctionResult({
+    abi: Multicall3,
+    functionName: "aggregate3",
     data: bytesToHex(contractCall.data)
   });
-  if (!amount) {
-    throw new Error("No amount returned from contract!");
-  }
-  return amount;
+  return results.map((result, i2) => {
+    if (!result.success) {
+      runtime2.log(`Failed to get risk state for ${positions[i2].user}`);
+      return { hf: "0", status: 0 };
+    }
+    const position = decodeFunctionResult({
+      abi: LiquidatorAdapter,
+      functionName: "getRiskState",
+      data: result.returnData
+    });
+    let status = 0;
+    if (position.riskMetric < HOT_HF)
+      status = 0;
+    else if (position.riskMetric <= WARM_HF)
+      status = 1;
+    else
+      status = 2;
+    return {
+      hf: position.riskMetric.toString(),
+      status
+    };
+  });
 }
-function getUserCollateral(runtime2, user, chain) {
+function getPoolAccountData(runtime2, chain) {
   const evmConfig = runtime2.config.evms[chain];
   const network248 = getNetwork({
     chainFamily: "evm",
@@ -17495,69 +17915,142 @@ function getUserCollateral(runtime2, user, chain) {
   }
   const evmClient = new ClientCapability(network248.chainSelector.selector);
   const callData = encodeFunctionData({
-    abi: LiiBorrowV1,
-    functionName: "getUserSuppliedCollateralAmount",
-    args: [user]
+    abi: Aave,
+    functionName: "getUserAccountData",
+    args: [evmConfig.liiBorrowAddress]
   });
   const contractCall = evmClient.callContract(runtime2, {
     call: encodeCallMsg({
       from: zeroAddress,
-      to: evmConfig.liiBorrowAddress,
+      to: evmConfig.AaveAddress,
       data: callData
     }),
     blockNumber: LATEST_BLOCK_NUMBER
   }).result();
-  const collaterals = decodeFunctionResult({
-    abi: LiiBorrowV1,
-    functionName: "getUserSuppliedCollateralAmount",
+  const resp = decodeFunctionResult({
+    abi: Aave,
+    functionName: "getUserAccountData",
     data: bytesToHex(contractCall.data)
   });
-  if (!collaterals) {
-    throw new Error("No collaterals returned from contract!");
-  }
-  return collaterals;
-}
-function getLiquidationStatus(runtime2, user, collateral, chain) {
-  const evmConfig = runtime2.config.evms[chain];
-  const network248 = getNetwork({
-    chainFamily: "evm",
-    chainSelectorName: evmConfig.chainSelectorName,
-    isTestnet: true
-  });
-  if (!network248) {
-    throw new Error(`Network not found for chain selector name: ${evmConfig.chainSelectorName}`);
-  }
-  const evmClient = new ClientCapability(network248.chainSelector.selector);
-  const callData = encodeFunctionData({
-    abi: LiquidatorAdapter,
-    functionName: "getLiquidationStatus",
-    args: [
-      user,
-      collateral
-    ]
-  });
-  const contractCall = evmClient.callContract(runtime2, {
-    call: encodeCallMsg({
-      from: zeroAddress,
-      to: evmConfig.liiBorrowAdapter,
-      data: callData
-    }),
-    blockNumber: LATEST_BLOCK_NUMBER
-  }).result();
-  const status = decodeFunctionResult({
-    abi: LiquidatorAdapter,
-    functionName: "getLiquidationStatus",
-    data: bytesToHex(contractCall.data)
-  });
-  if (!status) {
+  if (!resp) {
     throw new Error("No position returned from contract!");
   }
   return {
-    maxDebtToCover: status.maxDebtToCover,
-    actualReturn: status.actualReturn,
-    expectedReturn: status.expectedReturn,
-    expectedProfit: status.expectedProfit,
-    liquidationBonus: status.liquidationBonus
+    collateralUSD: resp[0],
+    debtUSD: resp[1],
+    canBorrowUSD: resp[2],
+    canBorrowUSDC: resp[3],
+    lltv: resp[4],
+    ltv: resp[5]
+  };
+}
+function getPoolHealthFactor(runtime2, chain) {
+  const evmConfig = runtime2.config.evms[chain];
+  const network248 = getNetwork({
+    chainFamily: "evm",
+    chainSelectorName: evmConfig.chainSelectorName,
+    isTestnet: true
+  });
+  if (!network248) {
+    throw new Error(`Network not found for chain selector name: ${evmConfig.chainSelectorName}`);
+  }
+  const evmClient = new ClientCapability(network248.chainSelector.selector);
+  const callData = encodeFunctionData({
+    abi: Aave,
+    functionName: "getHealthFactor",
+    args: [evmConfig.liiBorrowAddress]
+  });
+  const contractCall = evmClient.callContract(runtime2, {
+    call: encodeCallMsg({
+      from: zeroAddress,
+      to: evmConfig.AaveAddress,
+      data: callData
+    }),
+    blockNumber: LATEST_BLOCK_NUMBER
+  }).result();
+  const resp = decodeFunctionResult({
+    abi: Aave,
+    functionName: "getHealthFactor",
+    data: bytesToHex(contractCall.data)
+  });
+  if (!resp) {
+    throw new Error("No position returned from contract!");
+  }
+  return {
+    healthFactor: resp[0],
+    status: resp[1]
+  };
+}
+function getVariableDebt(runtime2, chain, asset) {
+  const evmConfig = runtime2.config.evms[chain];
+  const network248 = getNetwork({
+    chainFamily: "evm",
+    chainSelectorName: evmConfig.chainSelectorName,
+    isTestnet: true
+  });
+  if (!network248) {
+    throw new Error(`Network not found for chain selector name: ${evmConfig.chainSelectorName}`);
+  }
+  const evmClient = new ClientCapability(network248.chainSelector.selector);
+  const callData = encodeFunctionData({
+    abi: Aave,
+    functionName: "getVariableDebt",
+    args: [evmConfig.liiBorrowAddress, asset]
+  });
+  const contractCall = evmClient.callContract(runtime2, {
+    call: encodeCallMsg({
+      from: zeroAddress,
+      to: evmConfig.AaveAddress,
+      data: callData
+    }),
+    blockNumber: LATEST_BLOCK_NUMBER
+  }).result();
+  const resp = decodeFunctionResult({
+    abi: Aave,
+    functionName: "getVariableDebt",
+    data: bytesToHex(contractCall.data)
+  });
+  if (!resp) {
+    throw new Error("No position returned from contract!");
+  }
+  return {
+    amount: resp
+  };
+}
+function getSupplyBalance(runtime2, chain, asset) {
+  const evmConfig = runtime2.config.evms[chain];
+  const network248 = getNetwork({
+    chainFamily: "evm",
+    chainSelectorName: evmConfig.chainSelectorName,
+    isTestnet: true
+  });
+  if (!network248) {
+    throw new Error(`Network not found for chain selector name: ${evmConfig.chainSelectorName}`);
+  }
+  const evmClient = new ClientCapability(network248.chainSelector.selector);
+  const callData = encodeFunctionData({
+    abi: Aave,
+    functionName: "getSupplyBalance",
+    args: [evmConfig.liiBorrowAddress, asset]
+  });
+  const contractCall = evmClient.callContract(runtime2, {
+    call: encodeCallMsg({
+      from: zeroAddress,
+      to: evmConfig.AaveAddress,
+      data: callData
+    }),
+    blockNumber: LATEST_BLOCK_NUMBER
+  }).result();
+  const resp = decodeFunctionResult({
+    abi: Aave,
+    functionName: "getSupplyBalance",
+    data: bytesToHex(contractCall.data)
+  });
+  if (!resp) {
+    throw new Error("No position returned from contract!");
+  }
+  return {
+    amount: resp
   };
 }
 var makeReportData = (reports) => encodeAbiParameters([
@@ -17646,7 +18139,7 @@ var onLogTriggerLiidiaV1 = (runtime2, log) => {
     dataToSend.hf = hf;
     dataToSend.status = status;
   }
-  if (dataToSend.status === 0) {
+  if (dataToSend.status === 0 && BigInt(dataToSend.collateral ?? 0) < BASE_HF) {
     const positionData = {
       user: dataToSend.user,
       protocol: dataToSend.protocol,
@@ -17659,7 +18152,7 @@ var onLogTriggerLiidiaV1 = (runtime2, log) => {
       return `- Liquidation Complete: ${txHash}`;
     }
   } else {
-    const resp = writePositionToSupabase(runtime2, dataToSend);
+    const resp = writePositionsToSupabase(runtime2, [dataToSend]);
     runtime2.log(`- Result: ${resp}`);
   }
   return `Updated ${dataToSend.user} position in supabase`;
@@ -17673,33 +18166,78 @@ var onLogTriggerOracles = (runtime2, log) => {
     data,
     topics
   });
-  runtime2.log(`Event name: ${decodedLog.eventName}`);
+  runtime2.log(`>>> ${decodedLog.eventName} Event <<<`);
   const oracleAddress = bytesToHex(log.address);
+  runtime2.log(`- oracleAddress: ${oracleAddress}`);
   const collateral = ORACLES_MAP[oracleAddress];
+  runtime2.log(`- collateral: ${collateral}`);
   const chain = 0;
   const { current, updatedAt } = decodedLog.args;
-  const filter = `collateral=eq.${collateral}`;
-  const { price } = readOraclesFromSupabase(runtime2, filter);
-  const stale = isStale(BigInt(updatedAt || 0));
-  if (stale)
-    return "";
+  const { price } = readOraclesFromSupabase(runtime2, collateral);
+  runtime2.log(`- Previous price: ${price}`);
+  runtime2.log(`- Current price: ${current}`);
   const dataToSend = {
-    collateral: oracleAddress,
+    collateral,
+    chain,
     price: current.toString(),
     last_update: updatedAt.toString()
   };
-  writeOracleToSupabase(runtime2, dataToSend);
+  const resp = writeOracleToSupabase(runtime2, dataToSend);
+  runtime2.log(`- Result: ${resp}`);
   if (current < BigInt(price || 0)) {
-    const filter2 = `status=eq.0&collateral=eq.${collateral}`;
-    const positions = readPositionFromSupabase(runtime2, filter2);
+    const positions = readPositionsFromSupabase(runtime2, collateral);
+    if (positions.length == 0)
+      return "No Liquidatable Position Found!";
     const liquidPositions = checkIfLiquidatable(runtime2, chain, positions);
-    runtime2.log("Liquidating Positions!");
-    const txHash = liquidatePositions(runtime2, liquidPositions, chain);
-    return `Liquidation Complete: ${txHash}`;
+    if (liquidPositions.length > 0) {
+      const txHashes = [];
+      for (let i2 = 0;i2 < liquidPositions.length; i2 += 5) {
+        const batch = liquidPositions.slice(i2, i2 + 5);
+        const txHash = liquidatePositions(runtime2, batch, chain);
+        txHashes.push(txHash);
+      }
+      return `- Liquidation Complete: ${txHashes.join(", ")}`;
+    }
   }
-  return "No need to check as price incresed!";
+  return "No need to check as price increased!";
+};
+var onCronTriggerPoolHealth = (runtime2) => {
+  runtime2.log("Checking Pool Health");
+  const chain = 0;
+  const accountData = getPoolAccountData(runtime2, chain);
+  runtime2.log("POOL ACCOUNT DATA");
+  runtime2.log(">---------------------------------<");
+  runtime2.log(`collateralUSD: ${accountData.collateralUSD}`);
+  runtime2.log(`debtUSD: ${accountData.debtUSD}`);
+  runtime2.log(`canBorrowUSD: ${accountData.canBorrowUSD}`);
+  runtime2.log(`canBorrowUSDC: ${accountData.canBorrowUSDC}`);
+  runtime2.log(`lltv: ${accountData.lltv}`);
+  runtime2.log(`ltv: ${accountData.ltv}`);
+  runtime2.log("_______________________________________");
+  const hf = getPoolHealthFactor(runtime2, chain);
+  runtime2.log("POOL HEALTH FACTOR");
+  runtime2.log(">---------------------------------<");
+  runtime2.log(`health factor: ${formatUnits(hf.healthFactor, 18)}`);
+  runtime2.log(`status: ${hf.status}`);
+  runtime2.log("_______________________________________");
+  runtime2.log(" SUPPLY ");
+  runtime2.log(">---------------------------------<");
+  const assetInfo = ASSET_DATA["USDC"];
+  const variableDebt = getVariableDebt(runtime2, chain, assetInfo.address);
+  runtime2.log(`> USDC: ${formatUnits(variableDebt.amount, assetInfo.decimals)}`);
+  runtime2.log("_______________________________________");
+  runtime2.log(" DEBT ");
+  runtime2.log(">---------------------------------<");
+  for (let i2 = 0;i2 < supportedAssets.length; i2++) {
+    const assetInfo2 = ASSET_DATA[supportedAssets[i2]];
+    const supplyAmount = getSupplyBalance(runtime2, chain, assetInfo2.address);
+    runtime2.log(` > ${supportedAssets[i2]}: ${formatUnits(supplyAmount.amount, assetInfo2.decimals)}`);
+  }
+  updatePositions(runtime2);
+  return "Updation Complete!";
 };
 var initWorkflow = (config) => {
+  const cron = new CronCapability;
   const network248 = getNetwork({
     chainFamily: "evm",
     chainSelectorName: config.evms[0].chainSelectorName,
@@ -17719,13 +18257,15 @@ var initWorkflow = (config) => {
     handler(evmClient.logTrigger({
       addresses: [hexToBase64(config.evms[0].liiBorrowAddress)],
       topics: [
-        { values: [
-          hexToBase64(supplyEventHash),
-          hexToBase64(withdrawEventHash),
-          hexToBase64(liquidatedEventHash),
-          hexToBase64(borrowEventHash),
-          hexToBase64(repayUsdcEventHash)
-        ] }
+        {
+          values: [
+            hexToBase64(supplyEventHash),
+            hexToBase64(withdrawEventHash),
+            hexToBase64(liquidatedEventHash),
+            hexToBase64(borrowEventHash),
+            hexToBase64(repayUsdcEventHash)
+          ]
+        }
       ],
       confidence: "CONFIDENCE_LEVEL_FINALIZED"
     }), onLogTriggerLiidiaV1),
@@ -17736,8 +18276,10 @@ var initWorkflow = (config) => {
       ],
       topics: [{
         values: [hexToBase64(answerUpdatedEventHash)]
-      }]
-    }), onLogTriggerOracles)
+      }],
+      confidence: "CONFIDENCE_LEVEL_FINALIZED"
+    }), onLogTriggerOracles),
+    handler(cron.trigger({ schedule: config.evms[0].schedule }), onCronTriggerPoolHealth)
   ];
 };
 async function main() {
