@@ -45,7 +45,7 @@ import { LiquidatorAdapter, LiiBorrowV1, Multicall3 } from '../contracts/abi'
 // Constants
 export const BASE_HF = parseEther("1")
 export const HOT_HF = parseEther("1.05")
-export const WARM_HF = parseEther("1.15")
+export const WARM_HF = parseEther("1.10")
 const STALENESS_THRESHOLD = 3600n
 
 // Debt Asset
@@ -260,7 +260,38 @@ export function updatePositions(runtime: Runtime<Config>): void {
     runtime.log(`Batch updated ${updates.length} positions: ${resp}`);
 }
 
-// ── Step 1: Batch getRiskState for ALL positions (1 RPC call) ──
+/**
+ * @notice Batch retrieves risk states for multiple positions in a single RPC call
+ * @dev Uses Multicall3 to aggregate getRiskState calls to the Liquidator Adapter
+ *      for efficient batch querying of borrower health factors
+ * @param runtime - The CRE runtime instance for state management and logging
+ * @param evmClient - EVM client instance for chain interactions
+ * @param evmConfig - Chain-specific configuration containing adapter addresses
+ * @param positions - Array of ReadPositionData containing user addresses and protocols
+ * @returns Array of RiskState objects containing:
+ *          - liquidatable: boolean indicating if position can be liquidated
+ *          - riskMetric: health factor in wei scale (1e18 = HF of 1)
+ *          - collateralUSD: total collateral value in USD (wei)
+ *          - debtUSD: total debt value in USD (wei)
+ * 
+ * @dev Implementation Details:
+ *      - Maps each position to a Multicall3 call structure
+ *      - Targets the Liquidator Adapter contract's getRiskState function
+ *      - Executes all calls in a single aggregate3 transaction
+ *      - Throws if any individual getRiskState call fails
+ * 
+ * @dev Performance:
+ *      - Reduces N RPC calls to 1 for N positions
+ *      - Uses allowFailure=true to continue on partial failures
+ *      - Total complexity: O(n) where n = number of positions
+ * 
+ * @example
+ * ```typescript
+ * const positions = [{ user: "0x123...", protocol: "LIIBORROW_v1" }];
+ * const riskStates = _batchGetRiskStates(runtime, client, config, positions);
+ * // riskStates[0].liquidatable === true means position is liquidatable
+ * ```
+ */
 function _batchGetRiskStates(
     runtime: Runtime<Config>,
     evmClient: EVMClient,
@@ -289,7 +320,54 @@ function _batchGetRiskStates(
     });
 }
 
-// ─── Step 2: Batch collateral + liquidation + usdc for liquidatable positions ─
+/**
+ * @notice Batch retrieves liquidation data for all liquidatable positions
+ * @dev Executes a two-round multicall strategy to gather collateral, liquidation
+ *      status, and USDC conversion data efficiently. Round A fetches collateral
+ *      and liquidation status, Round B converts debt to USDC amounts.
+ * @param runtime - The CRE runtime instance for state management and logging
+ * @param evmClient - EVM client instance for chain interactions
+ * @param evmConfig - Chain-specific configuration containing protocol and adapter addresses
+ * @param liquidatablePositions - Array of ReadPositionData for positions with HF < 1
+ * @returns Array of liquidation data tuples containing:
+ *          - collaterals: Array of UserSuppliedCollateral with symbol, address, amount, value
+ *          - liquidationStatus: LiquidationStatus with maxDebtToCover, actualReturn, expectedReturn, expectedProfit, liquidationBonus
+ *          - usdcAmount: BigInt amount of USDC needed to cover the debt
+ * 
+ * @dev Implementation Details:
+ *      Round A (2 calls per position):
+ *        1. getUserSuppliedCollateralAmount - Fetches all collateral positions from LiiBorrowV1
+ *        2. getLiquidationStatus - Fetches liquidation params from Liquidator Adapter
+ *      
+ *      Round B (1 call per position):
+ *        1. getCollateralAmount - Converts maxDebtToCover to USDC amount
+ *      
+ * @dev Data Flow:
+ *      1. Build Round A calls: collateral + liquidation status for each position
+ *      2. Execute Round A multicall (reduces 2N calls to 1)
+ *      3. Decode Round A results, extract maxDebtToCover
+ *      4. Build Round B calls: USDC amount conversion using maxDebtToCover
+ *      5. Execute Round B multicall (reduces N calls to 1)
+ *      6. Return combined results from both rounds
+ * 
+ * @dev Validation:
+ *      - Filters collaterals where value >= actualReturn (prevents bad debt)
+ *      - Each position requires 3 contract calls total (split into 2 rounds)
+ *      - Throws on decode failures but continues on allowFailure calls
+ * 
+ * @dev Performance:
+ *      - Original: 3N RPC calls for N positions
+ *      - Optimized: 2 RPC calls total (1 per round)
+ *      - Significant gas savings and reduced latency
+ * 
+ * @example
+ * ```typescript
+ * const liquidatable = [{ user: "0x123...", collateral: "0xETH..." }];
+ * const data = _batchGetLiquidationData(runtime, client, config, liquidatable);
+ * // data[0].liquidationStatus.maxDebtToCover === max debt USDC value
+ * // data[0].usdcAmount === USDC needed to liquidate
+ * ```
+ */
 function _batchGetLiquidationData(
     runtime: Runtime<Config>,
     evmClient: EVMClient,
@@ -361,7 +439,53 @@ function _batchGetLiquidationData(
     }));
 }
 
-// ─── Multicall3 helper ──
+/**
+ * @notice Executes a batch of EVM calls via Multicall3 aggregate3 function
+ * @dev Wraps multiple contract calls into a single Multicall3 transaction,
+ *      providing atomic execution and reduced RPC overhead. Uses aggregate3
+ *      which supports individual call failure handling via allowFailure flag.
+ * @param runtime - The CRE runtime instance for contract interaction and logging
+ * @param evmClient - EVM client instance configured for the target chain
+ * @param calls - Array of Multicall3 call structures containing:
+ *                - target: Contract address to call
+ *                - allowFailure: Boolean to continue on failure vs revert all
+ *                - callData: Encoded function call data (selector + args)
+ * @returns Array of result structures containing:
+ *          - success: Boolean indicating if call succeeded
+ *          - returnData: Bytes data returned from the call (hex encoded)
+ * 
+ * @dev Technical Details:
+ *      - Encodes all calls using Multicall3's aggregate3 function
+ *      - Executes as a single view call at latest block number
+ *      - Decodes the aggregate3 return data into individual results
+ *      - Returns raw bytes requiring downstream decoding via decodeFunctionResult
+ * 
+ * @dev Error Handling:
+ *      - Uses allowFailure=true in calls to handle partial failures gracefully
+ *      - Individual call failures result in success=false with empty returnData
+ *      - Upstream functions must check success flag before decoding
+ * 
+ * @dev Gas Optimization:
+ *      - Eliminates N sequential RPC round-trips
+ *      - Single block lookup for entire batch
+ *      - Reduces connection overhead and improves throughput
+ * 
+ * @dev Chain Compatibility:
+ *      - Uses standard Multicall3 at 0xcA11bde05977b3631167028862bE2a173976CA11
+ *      - Supported on all EVM-compatible chains (Eth, Polygon, Arbitrum, etc.)
+ *      - Block number: LATEST_BLOCK_NUMBER (most recent finalized)
+ * 
+ * @example
+ * ```typescript
+ * const calls = [
+ *   { target: "0xAdapter...", allowFailure: true, callData: "0x..." },
+ *   { target: "0xProtocol...", allowFailure: true, callData: "0x..." }
+ * ];
+ * const results = _executeMulticall(runtime, client, calls);
+ * // results[0].success === true means first call succeeded
+ * // results[0].returnData contains the raw return bytes
+ * ```
+ */
 function _executeMulticall(
     runtime: Runtime<Config>,
     evmClient: EVMClient,
@@ -391,4 +515,3 @@ function _executeMulticall(
     })];
 }
 
-// ─── Main function ──
