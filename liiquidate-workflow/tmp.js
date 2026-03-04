@@ -17393,8 +17393,9 @@ var evmConfigSchema = exports_external.object({
 var configSchema = exports_external.object({
   evms: exports_external.array(evmConfigSchema).min(1, "At least one EVM config is required")
 });
-var BASE_POSITION_URL = "https://elyzpintovurrcxcrumg.supabase.co/rest/v1/positions";
-var BASE_ORACLE_URL = "https://elyzpintovurrcxcrumg.supabase.co/rest/v1/oracles";
+var BASE_URL = "https://elyzpintovurrcxcrumg.supabase.co/rest/v1";
+var POSITION_URL = `${BASE_URL}/positions`;
+var ORACLE_URL = `${BASE_URL}/oracles`;
 function writePositionsToSupabase(runtime2, data) {
   runtime2.log(`>>> Writing position to Supabase`);
   const supabaseServiceKey = runtime2.getSecret({ id: "SUPABASE_KEY" }).result();
@@ -17406,7 +17407,7 @@ var upsertPositionData = (dataToSend, secretKey) => (sendRequester) => {
   const bodyBytes = new TextEncoder().encode(JSON.stringify(dataToSend));
   const body = Buffer.from(bodyBytes).toString("base64");
   const req = {
-    url: `${BASE_POSITION_URL}?on_conflict=user,protocol,chain,collateral`,
+    url: `${POSITION_URL}?on_conflict=user,protocol,chain,collateral`,
     method: "POST",
     body,
     headers: {
@@ -17435,7 +17436,7 @@ function readAllPositionsFromSupabase(runtime2) {
 var readAllPositions = (secretKey) => (sendRequester) => {
   const filter = `select=user,protocol,chain,collateral`;
   const req = {
-    url: `${BASE_POSITION_URL}?${filter}`,
+    url: `${POSITION_URL}?${filter}`,
     method: "GET",
     headers: {
       Authorization: `Bearer ${secretKey}`,
@@ -17461,7 +17462,7 @@ function readPositionsFromSupabase(runtime2, token) {
 var readPositions = (secretKey, token) => (sendRequester) => {
   const filter = `status=eq.0&collateral=eq.${token}&select=user,protocol,chain,collateral`;
   const req = {
-    url: `${BASE_POSITION_URL}?${filter}`,
+    url: `${POSITION_URL}?${filter}`,
     method: "GET",
     headers: {
       Authorization: `Bearer ${secretKey}`,
@@ -17487,7 +17488,7 @@ function readUserPositionFromSupabase(runtime2, user, chain) {
 var readUserPositions = (secretKey, user, chain) => (sendRequester) => {
   const filter = `user=eq.${user}&chain=eq.${chain}&select=collateral`;
   const req = {
-    url: `${BASE_POSITION_URL}?${filter}`,
+    url: `${POSITION_URL}?${filter}`,
     method: "GET",
     headers: {
       Authorization: `Bearer ${secretKey}`,
@@ -17520,7 +17521,7 @@ var upsertOracleData = (dataToSend, secretKey) => (sendRequester) => {
   const bodyBytes = new TextEncoder().encode(JSON.stringify(dataToSend));
   const body = Buffer.from(bodyBytes).toString("base64");
   const req = {
-    url: `${BASE_ORACLE_URL}?on_conflict=collateral,chain`,
+    url: `${ORACLE_URL}?on_conflict=collateral,chain`,
     method: "POST",
     body,
     headers: {
@@ -17549,7 +17550,7 @@ function readOraclesFromSupabase(runtime2, collateral) {
 var readOracles = (secretKey, collateral) => (sendRequester) => {
   const filter = `collateral=eq.${collateral}&select=price,last_update`;
   const req = {
-    url: `${BASE_ORACLE_URL}?${filter}`,
+    url: `${ORACLE_URL}?${filter}`,
     method: "GET",
     headers: {
       Authorization: `Bearer ${secretKey}`,
@@ -17576,19 +17577,19 @@ var readOracles = (secretKey, collateral) => (sendRequester) => {
 var BASE_HF = parseEther("1");
 var HOT_HF = parseEther("1.05");
 var WARM_HF = parseEther("1.15");
-var USDC = "0xf8340a3BB21282Af32B567e0ACE1Cc5c4eF63a73";
+var USDC = "0x23256311E41354c00E880D5b923A64552f077FD3";
 var MULTICALL3_ADDRESS = "0xcA11bde05977b3631167028862bE2a173976CA11";
 var ORACLES_MAP = {
-  "0xaeeffddcc3095dc4037d58b654a371b7ff679f30": "0x394A1145Cc4480cD047ad065a5Ece23D4fcC2E1d"
+  "0x82a9d607cc8df65af2910e04211ebd7e989f5379": "0x6de4964bfEbCa1848c74FeaA6736b14898DfDB0c"
 };
 var supportedAssets = ["WETH"];
 var ASSET_DATA = {
   WETH: {
-    address: "0x394A1145Cc4480cD047ad065a5Ece23D4fcC2E1d",
+    address: "0x6de4964bfEbCa1848c74FeaA6736b14898DfDB0c",
     decimals: 18
   },
   USDC: {
-    address: "0xf8340a3BB21282Af32B567e0ACE1Cc5c4eF63a73",
+    address: USDC,
     decimals: 6
   }
 };
