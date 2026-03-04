@@ -2,12 +2,12 @@
   "evms": [
     {
       "schedule": "*/1 * * * *", 
-      "WethUsdPriceOracle": "0xaeEffddcC3095DC4037D58B654a371b7Ff679F30",
+      "WethUsdPriceOracle": "0x82a9d607cC8df65AF2910E04211Ebd7e989f5379",
       "WbtcUsdPriceOracle": "0x0000000000000000000000000000000000000000",
-      "proxyAddress": "0x87888dAEE178A598ff62E3E0c26Cb202e6E7fAC6",
-      "AaveAddress": "0x2853eA59358977011a8Bf653ab00d975871e3D6e",
-      "liiBorrowAddress": "0x3f26685991D09eCd40227Efb7649Ca2A371708CC",
-      "liiBorrowAdapter": "0xb4Bae94D879888EbB1e3f8e4D73ddD9a49dACFC9",
+      "proxyAddress": "0xEaD1FCB130c0539b883b87513a900c9198c6d2d5",
+      "AaveAddress": "0x4051A4D767C41074bA8d714083DB2308EA55B7c4",
+      "liiBorrowAddress": "0xFB56BcBB16eF411Ad25EE507d7c2430e561ae3E0",
+      "liiBorrowAdapter": "0x38e933A0d6582453E831c47e7D1863B634dB17f1",
       "chainSelectorName": "ethereum-testnet-sepolia",
       "gasLimit": "6500000"
     }
