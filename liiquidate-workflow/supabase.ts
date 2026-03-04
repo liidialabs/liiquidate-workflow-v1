@@ -17,8 +17,9 @@ import { type Config, PositionWriteData, ReadPositionData, OracleWriteData, Read
  * @version 1.0.0
  */
 
-const BASE_POSITION_URL = 'https://elyzpintovurrcxcrumg.supabase.co/rest/v1/positions'
-const BASE_ORACLE_URL = 'https://elyzpintovurrcxcrumg.supabase.co/rest/v1/oracles'
+const BASE_URL = 'https://elyzpintovurrcxcrumg.supabase.co/rest/v1'
+const POSITION_URL = `${BASE_URL}/positions`
+const ORACLE_URL = `${BASE_URL}/oracles`
 
 /**
  * @title Position Write Operations
@@ -77,7 +78,7 @@ const upsertPositionData =
 
       // construct POST request
       const req = {
-        url: `${BASE_POSITION_URL}?on_conflict=user,protocol,chain,collateral`,
+        url: `${POSITION_URL}?on_conflict=user,protocol,chain,collateral`,
         method: "POST" as const,
         body,
         headers: {
@@ -140,7 +141,7 @@ const readAllPositions =
       const filter = `select=user,protocol,chain,collateral`
 
       const req = {
-        url: `${BASE_POSITION_URL}?${filter}`,
+        url: `${POSITION_URL}?${filter}`,
         method: "GET" as const,
         headers: {
           Authorization: `Bearer ${secretKey}`,
@@ -196,7 +197,7 @@ const readPositions =
       const filter = `status=eq.0&collateral=eq.${token}&select=user,protocol,chain,collateral`
 
       const req = {
-        url: `${BASE_POSITION_URL}?${filter}`,
+        url: `${POSITION_URL}?${filter}`,
         method: "GET" as const,
         headers: {
           Authorization: `Bearer ${secretKey}`,
@@ -255,7 +256,7 @@ const readUserPositions =
       const filter = `user=eq.${user}&chain=eq.${chain}&select=collateral`
 
       const req = {
-        url: `${BASE_POSITION_URL}?${filter}`,
+        url: `${POSITION_URL}?${filter}`,
         method: "GET" as const,
         headers: {
           Authorization: `Bearer ${secretKey}`,
@@ -336,7 +337,7 @@ const upsertOracleData =
 
       // construct POST request
       const req = {
-        url: `${BASE_ORACLE_URL}?on_conflict=collateral,chain`,
+        url: `${ORACLE_URL}?on_conflict=collateral,chain`,
         method: "POST" as const,
         body,
         headers: {
@@ -405,7 +406,7 @@ const readOracles =
       const filter = `collateral=eq.${collateral}&select=price,last_update`
 
       const req = {
-        url: `${BASE_ORACLE_URL}?${filter}`,
+        url: `${ORACLE_URL}?${filter}`,
         method: "GET" as const,
         headers: {
           Authorization: `Bearer ${secretKey}`,
