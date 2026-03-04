@@ -18,7 +18,7 @@
 staging-settings:
   rpcs:
     - chain-name: ethereum-testnet-sepolia
-      url: https://sepolia.infura.io/v3/18f7267d6c1544ecad55744dd50b6185
+      url: https://virtual.rpc.tenderly.co/mokuaxv/project/public/liiquidate-sepolia
 
 # ==========================================================================
 production-settings:
