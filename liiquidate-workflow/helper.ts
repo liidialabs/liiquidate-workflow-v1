@@ -49,17 +49,17 @@ export const WARM_HF = parseEther("1.15")
 const STALENESS_THRESHOLD = 3600n
 
 // Debt Asset
-export const USDC: Address = '0xf8340a3BB21282Af32B567e0ACE1Cc5c4eF63a73'
+export const USDC: Address = '0x23256311E41354c00E880D5b923A64552f077FD3'
 export const MULTICALL3_ADDRESS: Address = "0xcA11bde05977b3631167028862bE2a173976CA11";
 
 // Map oracle to asset
 export const ORACLES_MAP: Record<string, string> = {
-  "0xaeeffddcc3095dc4037d58b654a371b7ff679f30": "0x394A1145Cc4480cD047ad065a5Ece23D4fcC2E1d", // WETH/USD
+  "0x82a9d607cc8df65af2910e04211ebd7e989f5379": "0x6de4964bfEbCa1848c74FeaA6736b14898DfDB0c", // WETH/USD
 } as const
 
 // Map protocol name to protocol address
 export const HASH_MAP: Record<string, Address> = {
-  LIIBORROW_v1: "0x3f26685991D09eCd40227Efb7649Ca2A371708CC",
+  LIIBORROW_v1: "0xFB56BcBB16eF411Ad25EE507d7c2430e561ae3E0",
 } as const
 
 // Supported Assets
@@ -68,11 +68,11 @@ export const supportedAssets: Array<string> = ['WETH']
 // Map asset name to its address
 export const ASSET_DATA: Record<string, AssetInfo> = {
     WETH: {
-        address: "0x394A1145Cc4480cD047ad065a5Ece23D4fcC2E1d",
+        address: "0x6de4964bfEbCa1848c74FeaA6736b14898DfDB0c",
         decimals: 18,
     },
     USDC: {
-        address: "0xf8340a3BB21282Af32B567e0ACE1Cc5c4eF63a73",
+        address: USDC,
         decimals: 6,
     },
 } as const
