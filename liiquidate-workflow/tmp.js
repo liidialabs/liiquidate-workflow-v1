@@ -17576,7 +17576,7 @@ var readOracles = (secretKey, collateral) => (sendRequester) => {
 };
 var BASE_HF = parseEther("1");
 var HOT_HF = parseEther("1.05");
-var WARM_HF = parseEther("1.15");
+var WARM_HF = parseEther("1.10");
 var USDC = "0x23256311E41354c00E880D5b923A64552f077FD3";
 var MULTICALL3_ADDRESS = "0xcA11bde05977b3631167028862bE2a173976CA11";
 var ORACLES_MAP = {

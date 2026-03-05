@@ -19,8 +19,8 @@ Liiquidate-flow is a proof-of-reserve style workflow that monitors borrower posi
    - Evaluates each position's health factor (HF)
    - Categorizes positions into risk tiers:
      - **HOT (0)**: HF < 1.05 — closely monitored
-     - **WARM (1)**: 1.05 ≤ HF ≤ 1.15 — monitored 
-     - **COLD (2)**: HF > 1.15 — healthy, no action needed
+     - **WARM (1)**: 1.05 ≤ HF ≤ 1.10 — standard monitoring 
+     - **COLD (2)**: HF > 1.10 — healthy, no action needed
 
 3. **Liquidation Detection**
    - Filters positions where HF < 1 (undercollateralized)
@@ -69,7 +69,7 @@ Liiquidate-flow is a proof-of-reserve style workflow that monitors borrower posi
                                 │                        
                                 ▼                        
                   ┌────────────────────────┐      ┌──────────────────┐     ┌─────────────────────────┐
-                  │ liquidatable Positions │────▶│  writeReport     │────▶│ Liiquidate Consumer     │
+                  │ Liquidatable Positions │────▶│  writeReport     │────▶│ Liiquidate Consumer     │
                   │ (encode + sign)        │      │ (submit signed)  │     │ (on-chain execution)    │
                   └────────────────────────┘      └──────────────────┘     └─────────────────────────┘
 ```
@@ -91,6 +91,7 @@ Liiquidate-flow is a proof-of-reserve style workflow that monitors borrower posi
 - **Viem**: Ethereum ABI encoding/decoding
 - **Supabase**: Position data persistence
 - **Multicall3**: Batch contract calls for gas efficiency
+- **Tenderly**: Virtual TestNet
 
 ## Getting Started
 
@@ -98,9 +99,8 @@ Liiquidate-flow is a proof-of-reserve style workflow that monitors borrower posi
 
 - Bun runtime
 - Chainlink CRE CLI (`cre`)
-- Access to an EVM testnet or mainnet
+- Access to an EVM testnet, mainnet or virtual testnet (`RPC_URL`)
 - Supabase project for position storage
-- Virtual TestNet RPC URL (If using Tenderly)
 
 ### Configuration
 
@@ -121,14 +121,18 @@ Liiquidate-flow is a proof-of-reserve style workflow that monitors borrower posi
 ### Running the Workflow
 
 ```bash
+# Set up environment variables
+cp .env.example .env
+# Edit .env with your private keys and RPC URLs
+
 # Install dependencies
-bun install
+cd liiquidate-workflow && bun install
 
-# Simulate locally
-cre workflow simulate ./liiquidate-workflow
+# Simulate 
+make simulate
 
-# Deploy to Chainlink CRE
-cre workflow deploy ./liiquidate-workflow
+# Simulate with broadcast
+make simulate-bc
 ```
 
 ## Database Schema
@@ -216,7 +220,7 @@ ALTER TABLE "positions" ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE "oracles" ENABLE ROW LEVEL SECURITY;
 
--- backend can do everything
+-- backend (workflow) can do everything
 CREATE POLICY "backend_full_access" ON "positions"
   FOR ALL
   TO service_role
@@ -255,8 +259,8 @@ The workflow implements a three-tier risk classification system:
 | Status | Code | Health Factor | Action |
 |--------|------|----------------|--------|
 | HOT | 0 | HF < 1.05 | Monitor Closely |
-| WARM | 1 | 1.05 ≤ HF ≤ 1.1 | Monitor |
-| COLD | 2 | HF > 1.1 | No action |
+| WARM | 1 | 1.05 ≤ HF ≤ 1.10 | Standard Monitoring |
+| COLD | 2 | HF > 1.10 | No action |
 
 ## Contract Interactions
 
