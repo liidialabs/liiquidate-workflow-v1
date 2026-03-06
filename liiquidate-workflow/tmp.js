@@ -17577,15 +17577,15 @@ var readOracles = (secretKey, collateral) => (sendRequester) => {
 var BASE_HF = parseEther("1");
 var HOT_HF = parseEther("1.05");
 var WARM_HF = parseEther("1.10");
-var USDC = "0x23256311E41354c00E880D5b923A64552f077FD3";
+var USDC = "0x8ca959E4c4745df0E2fE5CE5fAcFD3F35ae509e9";
 var MULTICALL3_ADDRESS = "0xcA11bde05977b3631167028862bE2a173976CA11";
 var ORACLES_MAP = {
-  "0x82a9d607cc8df65af2910e04211ebd7e989f5379": "0x6de4964bfEbCa1848c74FeaA6736b14898DfDB0c"
+  "0x1e1e2a398eba72c5d4bdea909f3bc928efff4505": "0x49C954F846e870FE5402C7F65cD035592c81aadB"
 };
 var supportedAssets = ["WETH"];
 var ASSET_DATA = {
   WETH: {
-    address: "0x6de4964bfEbCa1848c74FeaA6736b14898DfDB0c",
+    address: "0x49C954F846e870FE5402C7F65cD035592c81aadB",
     decimals: 18
   },
   USDC: {
@@ -17613,7 +17613,7 @@ function checkIfLiquidatable(runtime2, chain, positions) {
   const network248 = getNetwork({
     chainFamily: "evm",
     chainSelectorName: evmConfig.chainSelectorName,
-    isTestnet: true
+    isTestnet: false
   });
   if (!network248)
     throw new Error(`Network not found for chain: ${evmConfig.chainSelectorName}`);
@@ -17671,6 +17671,96 @@ function updatePositions(runtime2) {
   }
   const resp = writePositionsToSupabase(runtime2, updates);
   runtime2.log(`Batch updated ${updates.length} positions: ${resp}`);
+}
+function getPoolData(runtime2, chain) {
+  const evmConfig = runtime2.config.evms[chain];
+  const network248 = getNetwork({
+    chainFamily: "evm",
+    chainSelectorName: evmConfig.chainSelectorName,
+    isTestnet: false
+  });
+  if (!network248)
+    throw new Error(`Network not found: ${evmConfig.chainSelectorName}`);
+  const evmClient = new ClientCapability(network248.chainSelector.selector);
+  const aaveTarget = evmConfig.AaveAddress;
+  const calls = [
+    {
+      target: aaveTarget,
+      allowFailure: false,
+      callData: encodeFunctionData({
+        abi: Aave,
+        functionName: "getUserAccountData",
+        args: [evmConfig.liiBorrowAddress]
+      })
+    },
+    {
+      target: aaveTarget,
+      allowFailure: false,
+      callData: encodeFunctionData({
+        abi: Aave,
+        functionName: "getHealthFactor",
+        args: [evmConfig.liiBorrowAddress]
+      })
+    },
+    {
+      target: aaveTarget,
+      allowFailure: false,
+      callData: encodeFunctionData({
+        abi: Aave,
+        functionName: "getVariableDebt",
+        args: [evmConfig.liiBorrowAddress, ASSET_DATA["USDC"].address]
+      })
+    },
+    ...supportedAssets.map((asset) => ({
+      target: aaveTarget,
+      allowFailure: false,
+      callData: encodeFunctionData({
+        abi: Aave,
+        functionName: "getSupplyBalance",
+        args: [evmConfig.liiBorrowAddress, ASSET_DATA[asset].address]
+      })
+    }))
+  ];
+  const results = _executeMulticallPoolData(runtime2, evmClient, calls);
+  const accountDataRaw = decodeFunctionResult({ abi: Aave, functionName: "getUserAccountData", data: results[0].returnData });
+  const hfRaw = decodeFunctionResult({ abi: Aave, functionName: "getHealthFactor", data: results[1].returnData });
+  const debtRaw = decodeFunctionResult({ abi: Aave, functionName: "getVariableDebt", data: results[2].returnData });
+  const supplyRaw = supportedAssets.map((_, i2) => decodeFunctionResult({ abi: Aave, functionName: "getSupplyBalance", data: results[3 + i2].returnData }));
+  return {
+    accountData: {
+      collateralUSD: accountDataRaw[0],
+      debtUSD: accountDataRaw[1],
+      canBorrowUSD: accountDataRaw[2],
+      canBorrowUSDC: accountDataRaw[3],
+      lltv: accountDataRaw[4],
+      ltv: accountDataRaw[5]
+    },
+    hf: {
+      healthFactor: hfRaw[0],
+      status: hfRaw[1]
+    },
+    variableDebt: { amount: debtRaw },
+    supplyBalances: supplyRaw.map((r) => ({ amount: r }))
+  };
+}
+function _executeMulticallPoolData(runtime2, evmClient, calls) {
+  const result = evmClient.callContract(runtime2, {
+    call: encodeCallMsg({
+      from: zeroAddress,
+      to: MULTICALL3_ADDRESS,
+      data: encodeFunctionData({
+        abi: Multicall3,
+        functionName: "aggregate3",
+        args: [calls]
+      })
+    }),
+    blockNumber: LATEST_BLOCK_NUMBER
+  }).result();
+  return [...decodeFunctionResult({
+    abi: Multicall3,
+    functionName: "aggregate3",
+    data: bytesToHex2(result.data)
+  })];
 }
 function _batchGetRiskStates(runtime2, evmClient, evmConfig, positions) {
   const calls = positions.map((p) => ({
@@ -17774,7 +17864,7 @@ function liquidatePositions(runtime2, positions, chain) {
   const network248 = getNetwork({
     chainFamily: "evm",
     chainSelectorName: evmCfg.chainSelectorName,
-    isTestnet: true
+    isTestnet: false
   });
   if (!network248)
     throw new Error(`Unknown chain name: ${evmCfg.chainSelectorName}`);
@@ -17810,7 +17900,7 @@ function getCurrentPosition(runtime2, user, chain) {
   const network248 = getNetwork({
     chainFamily: "evm",
     chainSelectorName: evmConfig.chainSelectorName,
-    isTestnet: true
+    isTestnet: false
   });
   if (!network248) {
     throw new Error(`Network not found for chain selector name: ${evmConfig.chainSelectorName}`);
@@ -17849,7 +17939,7 @@ function batchGetRiskStates(runtime2, positions, chain) {
   const network248 = getNetwork({
     chainFamily: "evm",
     chainSelectorName: evmConfig.chainSelectorName,
-    isTestnet: true
+    isTestnet: false
   });
   if (!network248)
     throw new Error(`Network not found for chain: ${evmConfig.chainSelectorName}`);
@@ -17903,156 +17993,6 @@ function batchGetRiskStates(runtime2, positions, chain) {
       status
     };
   });
-}
-function getPoolAccountData(runtime2, chain) {
-  const evmConfig = runtime2.config.evms[chain];
-  const network248 = getNetwork({
-    chainFamily: "evm",
-    chainSelectorName: evmConfig.chainSelectorName,
-    isTestnet: true
-  });
-  if (!network248) {
-    throw new Error(`Network not found for chain selector name: ${evmConfig.chainSelectorName}`);
-  }
-  const evmClient = new ClientCapability(network248.chainSelector.selector);
-  const callData = encodeFunctionData({
-    abi: Aave,
-    functionName: "getUserAccountData",
-    args: [evmConfig.liiBorrowAddress]
-  });
-  const contractCall = evmClient.callContract(runtime2, {
-    call: encodeCallMsg({
-      from: zeroAddress,
-      to: evmConfig.AaveAddress,
-      data: callData
-    }),
-    blockNumber: LATEST_BLOCK_NUMBER
-  }).result();
-  const resp = decodeFunctionResult({
-    abi: Aave,
-    functionName: "getUserAccountData",
-    data: bytesToHex(contractCall.data)
-  });
-  if (!resp) {
-    throw new Error("No position returned from contract!");
-  }
-  return {
-    collateralUSD: resp[0],
-    debtUSD: resp[1],
-    canBorrowUSD: resp[2],
-    canBorrowUSDC: resp[3],
-    lltv: resp[4],
-    ltv: resp[5]
-  };
-}
-function getPoolHealthFactor(runtime2, chain) {
-  const evmConfig = runtime2.config.evms[chain];
-  const network248 = getNetwork({
-    chainFamily: "evm",
-    chainSelectorName: evmConfig.chainSelectorName,
-    isTestnet: true
-  });
-  if (!network248) {
-    throw new Error(`Network not found for chain selector name: ${evmConfig.chainSelectorName}`);
-  }
-  const evmClient = new ClientCapability(network248.chainSelector.selector);
-  const callData = encodeFunctionData({
-    abi: Aave,
-    functionName: "getHealthFactor",
-    args: [evmConfig.liiBorrowAddress]
-  });
-  const contractCall = evmClient.callContract(runtime2, {
-    call: encodeCallMsg({
-      from: zeroAddress,
-      to: evmConfig.AaveAddress,
-      data: callData
-    }),
-    blockNumber: LATEST_BLOCK_NUMBER
-  }).result();
-  const resp = decodeFunctionResult({
-    abi: Aave,
-    functionName: "getHealthFactor",
-    data: bytesToHex(contractCall.data)
-  });
-  if (!resp) {
-    throw new Error("No position returned from contract!");
-  }
-  return {
-    healthFactor: resp[0],
-    status: resp[1]
-  };
-}
-function getVariableDebt(runtime2, chain, asset) {
-  const evmConfig = runtime2.config.evms[chain];
-  const network248 = getNetwork({
-    chainFamily: "evm",
-    chainSelectorName: evmConfig.chainSelectorName,
-    isTestnet: true
-  });
-  if (!network248) {
-    throw new Error(`Network not found for chain selector name: ${evmConfig.chainSelectorName}`);
-  }
-  const evmClient = new ClientCapability(network248.chainSelector.selector);
-  const callData = encodeFunctionData({
-    abi: Aave,
-    functionName: "getVariableDebt",
-    args: [evmConfig.liiBorrowAddress, asset]
-  });
-  const contractCall = evmClient.callContract(runtime2, {
-    call: encodeCallMsg({
-      from: zeroAddress,
-      to: evmConfig.AaveAddress,
-      data: callData
-    }),
-    blockNumber: LATEST_BLOCK_NUMBER
-  }).result();
-  const resp = decodeFunctionResult({
-    abi: Aave,
-    functionName: "getVariableDebt",
-    data: bytesToHex(contractCall.data)
-  });
-  if (!resp) {
-    throw new Error("No position returned from contract!");
-  }
-  return {
-    amount: resp
-  };
-}
-function getSupplyBalance(runtime2, chain, asset) {
-  const evmConfig = runtime2.config.evms[chain];
-  const network248 = getNetwork({
-    chainFamily: "evm",
-    chainSelectorName: evmConfig.chainSelectorName,
-    isTestnet: true
-  });
-  if (!network248) {
-    throw new Error(`Network not found for chain selector name: ${evmConfig.chainSelectorName}`);
-  }
-  const evmClient = new ClientCapability(network248.chainSelector.selector);
-  const callData = encodeFunctionData({
-    abi: Aave,
-    functionName: "getSupplyBalance",
-    args: [evmConfig.liiBorrowAddress, asset]
-  });
-  const contractCall = evmClient.callContract(runtime2, {
-    call: encodeCallMsg({
-      from: zeroAddress,
-      to: evmConfig.AaveAddress,
-      data: callData
-    }),
-    blockNumber: LATEST_BLOCK_NUMBER
-  }).result();
-  const resp = decodeFunctionResult({
-    abi: Aave,
-    functionName: "getSupplyBalance",
-    data: bytesToHex(contractCall.data)
-  });
-  if (!resp) {
-    throw new Error("No position returned from contract!");
-  }
-  return {
-    amount: resp
-  };
 }
 var makeReportData = (reports) => encodeAbiParameters([
   {
@@ -18205,9 +18145,9 @@ var onLogTriggerOracles = (runtime2, log) => {
 var onCronTriggerPoolHealth = (runtime2) => {
   runtime2.log("Checking Pool Health");
   const chain = 0;
-  const accountData = getPoolAccountData(runtime2, chain);
+  const { accountData, hf, variableDebt, supplyBalances } = getPoolData(runtime2, chain);
+  runtime2.log("_______________________________________");
   runtime2.log("POOL ACCOUNT DATA");
-  runtime2.log(">---------------------------------<");
   runtime2.log(`collateralUSD: ${accountData.collateralUSD}`);
   runtime2.log(`debtUSD: ${accountData.debtUSD}`);
   runtime2.log(`canBorrowUSD: ${accountData.canBorrowUSD}`);
@@ -18215,25 +18155,19 @@ var onCronTriggerPoolHealth = (runtime2) => {
   runtime2.log(`lltv: ${accountData.lltv}`);
   runtime2.log(`ltv: ${accountData.ltv}`);
   runtime2.log("_______________________________________");
-  const hf = getPoolHealthFactor(runtime2, chain);
   runtime2.log("POOL HEALTH FACTOR");
-  runtime2.log(">---------------------------------<");
   runtime2.log(`health factor: ${formatUnits(hf.healthFactor, 18)}`);
   runtime2.log(`status: ${hf.status}`);
   runtime2.log("_______________________________________");
-  runtime2.log(" SUPPLY ");
-  runtime2.log(">---------------------------------<");
-  const assetInfo = ASSET_DATA["USDC"];
-  const variableDebt = getVariableDebt(runtime2, chain, assetInfo.address);
-  runtime2.log(`> USDC: ${formatUnits(variableDebt.amount, assetInfo.decimals)}`);
-  runtime2.log("_______________________________________");
   runtime2.log(" DEBT ");
-  runtime2.log(">---------------------------------<");
+  runtime2.log(`> USDC: ${formatUnits(variableDebt.amount, ASSET_DATA["USDC"].decimals)}`);
+  runtime2.log("_______________________________________");
+  runtime2.log(" SUPPLY ");
   for (let i2 = 0;i2 < supportedAssets.length; i2++) {
-    const assetInfo2 = ASSET_DATA[supportedAssets[i2]];
-    const supplyAmount = getSupplyBalance(runtime2, chain, assetInfo2.address);
-    runtime2.log(` > ${supportedAssets[i2]}: ${formatUnits(supplyAmount.amount, assetInfo2.decimals)}`);
+    const assetInfo = ASSET_DATA[supportedAssets[i2]];
+    runtime2.log(` > ${supportedAssets[i2]}: ${formatUnits(supplyBalances[i2].amount, assetInfo.decimals)}`);
   }
+  runtime2.log("_______________________________________");
   updatePositions(runtime2);
   return "Updation Complete!";
 };
@@ -18242,7 +18176,7 @@ var initWorkflow = (config) => {
   const network248 = getNetwork({
     chainFamily: "evm",
     chainSelectorName: config.evms[0].chainSelectorName,
-    isTestnet: true
+    isTestnet: false
   });
   if (!network248) {
     throw new Error(`Network not found for chain selector name: ${config.evms[0].chainSelectorName}`);
