@@ -2,13 +2,13 @@
   "evms": [
     {
       "schedule": "*/1 * * * *", 
-      "WethUsdPriceOracle": "0x82a9d607cC8df65AF2910E04211Ebd7e989f5379",
+      "WethUsdPriceOracle": "0x1E1e2a398EBA72C5D4bdEA909F3bC928eFfF4505",
       "WbtcUsdPriceOracle": "0x0000000000000000000000000000000000000000",
-      "proxyAddress": "0xEaD1FCB130c0539b883b87513a900c9198c6d2d5",
-      "AaveAddress": "0x4051A4D767C41074bA8d714083DB2308EA55B7c4",
-      "liiBorrowAddress": "0xFB56BcBB16eF411Ad25EE507d7c2430e561ae3E0",
-      "liiBorrowAdapter": "0x38e933A0d6582453E831c47e7D1863B634dB17f1",
-      "chainSelectorName": "ethereum-testnet-sepolia",
+      "proxyAddress": "0xa9D309dFe0924Ba65A5EFa9D9Ea9528E43562934",
+      "AaveAddress": "0x4fc08467e75db0123480d869239Afd9CCBeE0951",
+      "liiBorrowAddress": "0x4E0Af3287669D331BB5B858B738B0be069b7C750",
+      "liiBorrowAdapter": "0xBC3192c86c99c1dCE635Fe2C9cCA375e2Ab1556D",
+      "chainSelectorName": "ethereum-mainnet",
       "gasLimit": "6500000"
     }
   ]
