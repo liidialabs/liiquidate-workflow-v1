@@ -82,7 +82,7 @@ export function liquidatePositions(
     const network = getNetwork({
         chainFamily: "evm",
         chainSelectorName: evmCfg.chainSelectorName,
-        isTestnet: true,
+        isTestnet: false,
     });
     if (!network) throw new Error(`Unknown chain name: ${evmCfg.chainSelectorName}`);
 
@@ -154,7 +154,7 @@ export function getUsdcAmount(
     const network = getNetwork({
         chainFamily: 'evm',
         chainSelectorName: evmConfig.chainSelectorName,
-        isTestnet: true,
+        isTestnet: false,
     })
 
     if (!network) {
@@ -222,7 +222,7 @@ export function getUserCollateral(
     const network = getNetwork({
         chainFamily: 'evm',
         chainSelectorName: evmConfig.chainSelectorName,
-        isTestnet: true,
+        isTestnet: false,
     })
 
     if (!network) {
@@ -297,7 +297,7 @@ export function getLiquidationStatus(
     const network = getNetwork({
         chainFamily: 'evm',
         chainSelectorName: evmConfig.chainSelectorName,
-        isTestnet: true,
+        isTestnet: false,
     })
 
     if (!network) {
@@ -377,7 +377,7 @@ export function getCurrentPosition(
     const network = getNetwork({
         chainFamily: 'evm',
         chainSelectorName: evmConfig.chainSelectorName,
-        isTestnet: true,
+        isTestnet: false,
     })
 
     if (!network) {
@@ -457,7 +457,7 @@ export function batchGetRiskStates(
     const network = getNetwork({
         chainFamily: 'evm',
         chainSelectorName: evmConfig.chainSelectorName,
-        isTestnet: true,
+        isTestnet: false,
     });
 
     if (!network) throw new Error(`Network not found for chain: ${evmConfig.chainSelectorName}`);
@@ -555,7 +555,7 @@ export function getPoolAccountData(
     const network = getNetwork({
         chainFamily: 'evm',
         chainSelectorName: evmConfig.chainSelectorName,
-        isTestnet: true,
+        isTestnet: false,
     })
 
     if (!network) {
@@ -630,7 +630,7 @@ export function getPoolHealthFactor(
     const network = getNetwork({
         chainFamily: 'evm',
         chainSelectorName: evmConfig.chainSelectorName,
-        isTestnet: true,
+        isTestnet: false,
     })
 
     if (!network) {
@@ -695,7 +695,7 @@ export function getVariableDebt(
     const network = getNetwork({
         chainFamily: 'evm',
         chainSelectorName: evmConfig.chainSelectorName,
-        isTestnet: true,
+        isTestnet: false,
     })
 
     if (!network) {
@@ -759,7 +759,7 @@ export function getSupplyBalance(
     const network = getNetwork({
         chainFamily: 'evm',
         chainSelectorName: evmConfig.chainSelectorName,
-        isTestnet: true,
+        isTestnet: false,
     })
 
     if (!network) {
