@@ -37,7 +37,8 @@ import {
 	supportedAssets,
 	ASSET_DATA,
 	updatePositions,
-	BASE_HF
+	BASE_HF,
+	getPoolData
 } from './helper'
 import { liidiaV1EventAbi, chainlinkPriceOracleEventAbi } from './eventAbi'
 import {
@@ -48,11 +49,7 @@ import {
 	readUserPositionFromSupabase
 } from './supabase'
 import {
-	liquidatePositions,
-	getPoolAccountData,
-	getPoolHealthFactor,
-	getVariableDebt,
-	getSupplyBalance
+	liquidatePositions
 } from './evm'
 
 
@@ -73,8 +70,8 @@ import {
  * 
  * @dev Status Codes:
  *      - 0 (HOT): Liquidatable, HF < 1.05
- *      - 1 (WARM): At risk, HF <= 1.15
- *      - 2 (COLD): Healthy, HF > 1.15
+ *      - 1 (WARM): At risk, HF <= 1.10
+ *      - 2 (COLD): Healthy, HF > 1.10
  */
 const onLogTriggerLiidiaV1 = (runtime: Runtime<Config>, log: EVMLog): string => {
 	runtime.log('Running Liidia LogTrigger ...')
@@ -311,14 +308,13 @@ const onCronTriggerPoolHealth = (runtime: Runtime<Config>,): string => {
 
 	// chain
 	const chain = 0
-	// const HOT = parseEther('1.1')
-	// const WARM = parseEther('1.3')
-	// const COOL = parseEther('1.5')
+
+	// fetch pool data
+	const { accountData, hf, variableDebt, supplyBalances } = getPoolData(runtime, chain);
 
 	// account data
-	const accountData = getPoolAccountData(runtime, chain)
+	runtime.log("_______________________________________")
 	runtime.log("POOL ACCOUNT DATA")
-	runtime.log(">---------------------------------<")
 	runtime.log(`collateralUSD: ${accountData.collateralUSD}`)
 	runtime.log(`debtUSD: ${accountData.debtUSD}`)
 	runtime.log(`canBorrowUSD: ${accountData.canBorrowUSD}`)
@@ -328,28 +324,23 @@ const onCronTriggerPoolHealth = (runtime: Runtime<Config>,): string => {
 	runtime.log("_______________________________________")
 
 	// health factor
-	const hf = getPoolHealthFactor(runtime, chain)
 	runtime.log("POOL HEALTH FACTOR")
-	runtime.log(">---------------------------------<")
 	runtime.log(`health factor: ${formatUnits(hf.healthFactor, 18)}`)
 	runtime.log(`status: ${hf.status}`)
 	runtime.log("_______________________________________")
 
-	// Debt & Supply Balances
-	runtime.log(" SUPPLY ")
-	runtime.log(">---------------------------------<")
-	const assetInfo = ASSET_DATA['USDC']
-	const variableDebt = getVariableDebt(runtime, chain, assetInfo.address as Address)
-	runtime.log(`> USDC: ${formatUnits(variableDebt.amount, assetInfo.decimals)}`)
+	// debt
+	runtime.log(" DEBT ")
+	runtime.log(`> USDC: ${formatUnits(variableDebt.amount, ASSET_DATA['USDC'].decimals)}`)
 	runtime.log("_______________________________________")
 
-	runtime.log(" DEBT ")
-	runtime.log(">---------------------------------<")
+	// supply
+	runtime.log(" SUPPLY ")
 	for (let i = 0; i < supportedAssets.length; i++) {
 		const assetInfo = ASSET_DATA[supportedAssets[i]]
-		const supplyAmount = getSupplyBalance(runtime, chain, assetInfo.address as Address)
-		runtime.log(` > ${supportedAssets[i]}: ${formatUnits(supplyAmount.amount, assetInfo.decimals)}`)
+		runtime.log(` > ${supportedAssets[i]}: ${formatUnits(supplyBalances[i].amount, assetInfo.decimals)}`)
 	}
+	runtime.log("_______________________________________")
 
 	// Recalculate Positions
 	updatePositions(runtime)
@@ -386,7 +377,7 @@ const initWorkflow = (config: Config) => {
 	const network = getNetwork({
 		chainFamily: 'evm',
 		chainSelectorName: config.evms[0].chainSelectorName,
-		isTestnet: true,
+		isTestnet: false,
 	})
 
 	if (!network) {

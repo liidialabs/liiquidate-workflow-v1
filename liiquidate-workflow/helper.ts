@@ -8,30 +8,33 @@
  */
 
 import {
-    PrepareWriteOutput, 
-    Config, 
-    LiquidatablePositions, 
-    ReadPositionData, 
-    AssetInfo, 
+    PrepareWriteOutput,
+    Config,
+    LiquidatablePositions,
+    ReadPositionData,
+    AssetInfo,
     PositionWriteData,
     RiskState,
     UserSuppliedCollateral,
     LiquidationStatus,
-    EvmConfig
+    EvmConfig,
+    PoolAccountData,
+    HealthFactor,
+    AaveAmount
 } from './types'
-import { 
+import {
     getCurrentPosition,
     batchGetRiskStates
 } from './evm'
-import { 
+import {
     Runtime,
     EVMClient,
     getNetwork,
     LATEST_BLOCK_NUMBER,
     encodeCallMsg
 } from '@chainlink/cre-sdk'
-import { 
-    parseEther, 
+import {
+    parseEther,
     Address,
     decodeFunctionResult,
     encodeFunctionData,
@@ -40,7 +43,7 @@ import {
     zeroAddress,
 } from 'viem'
 import { readAllPositionsFromSupabase, writePositionsToSupabase } from './supabase'
-import { LiquidatorAdapter, LiiBorrowV1, Multicall3 } from '../contracts/abi'
+import { LiquidatorAdapter, LiiBorrowV1, Multicall3, Aave } from '../contracts/abi'
 
 // Constants
 export const BASE_HF = parseEther("1")
@@ -49,26 +52,26 @@ export const WARM_HF = parseEther("1.10")
 const STALENESS_THRESHOLD = 3600n
 
 // Debt Asset
-export const USDC: Address = '0x23256311E41354c00E880D5b923A64552f077FD3'
+export const USDC: Address = '0x8ca959E4c4745df0E2fE5CE5fAcFD3F35ae509e9'
 export const MULTICALL3_ADDRESS: Address = "0xcA11bde05977b3631167028862bE2a173976CA11";
 
 // Map oracle to asset
 export const ORACLES_MAP: Record<string, string> = {
-  "0x82a9d607cc8df65af2910e04211ebd7e989f5379": "0x6de4964bfEbCa1848c74FeaA6736b14898DfDB0c", // WETH/USD
+    "0x1e1e2a398eba72c5d4bdea909f3bc928efff4505": "0x49C954F846e870FE5402C7F65cD035592c81aadB", // WETH/USD
 } as const
 
 // Map protocol name to protocol address
 export const HASH_MAP: Record<string, Address> = {
-  LIIBORROW_v1: "0xFB56BcBB16eF411Ad25EE507d7c2430e561ae3E0",
+    LIIBORROW_v1: "0x4E0Af3287669D331BB5B858B738B0be069b7C750",
 } as const
 
 // Supported Assets
-export const supportedAssets: Array<string> = ['WETH'] 
+export const supportedAssets: Array<string> = ['WETH']
 
 // Map asset name to its address
 export const ASSET_DATA: Record<string, AssetInfo> = {
     WETH: {
-        address: "0x6de4964bfEbCa1848c74FeaA6736b14898DfDB0c",
+        address: "0x49C954F846e870FE5402C7F65cD035592c81aadB",
         decimals: 18,
     },
     USDC: {
@@ -89,25 +92,25 @@ export const ASSET_DATA: Record<string, AssetInfo> = {
  * 
  * @dev Status Thresholds:
  *      - HOT (0): HF < 1.05 - Should be liquidated
- *      - WARM (1): HF <= 1.15 - Monitor closely
- *      - COLD (2): HF > 1.15 - Healthy
+ *      - WARM (1): HF <= 1.10 - Monitor closely
+ *      - COLD (2): HF > 1.10 - Healthy
  */
 export function getRiskStatus(
-    runtime: Runtime<Config>, 
-    user: Address, 
+    runtime: Runtime<Config>,
+    user: Address,
     chain: number
 ): PrepareWriteOutput {
     // fetch hf
     const { riskMetric } = getCurrentPosition(runtime, user, chain);
     // Determine status
     let status: 0 | 1 | 2 = 0;
-    if(riskMetric < HOT_HF)
+    if (riskMetric < HOT_HF)
         status = 0; // HOT - Should be liquidated
-    else if(riskMetric <= WARM_HF)
+    else if (riskMetric <= WARM_HF)
         status = 1; // WARM - Should be closely monitored
     else
         status = 2; // COLD - Out of risk region
-    
+
     return {
         hf: riskMetric.toString(),
         status: status
@@ -124,8 +127,8 @@ export function getRiskStatus(
  *      Used to ensure we're not making decisions on outdated price data
  */
 export function isStale(last: bigint): boolean {
-  const now = BigInt(Math.floor(Date.now() / 1000));
-  return now - last > STALENESS_THRESHOLD;
+    const now = BigInt(Math.floor(Date.now() / 1000));
+    return now - last > STALENESS_THRESHOLD;
 }
 
 /**
@@ -161,7 +164,7 @@ export function checkIfLiquidatable(
     const network = getNetwork({
         chainFamily: 'evm',
         chainSelectorName: evmConfig.chainSelectorName,
-        isTestnet: true,
+        isTestnet: false,
     });
     if (!network) throw new Error(`Network not found for chain: ${evmConfig.chainSelectorName}`);
 
@@ -258,6 +261,183 @@ export function updatePositions(runtime: Runtime<Config>): void {
     // Single batch upsert
     const resp = writePositionsToSupabase(runtime, updates);
     runtime.log(`Batch updated ${updates.length} positions: ${resp}`);
+}
+
+/**
+ * @notice Retrieves comprehensive pool data for a specific chain from Aave V3
+ * @dev Uses Multicall3 to aggregate multiple Aave pool queries in a single RPC call
+ *      for efficient batch retrieval of account data, health factor, debt, and supply balances
+ * @param runtime - The CRE runtime instance for state management and logging
+ * @param chain - The chain selector number identifying the EVM network
+ * @returns Object containing:
+ *          - accountData: PoolAccountData with collateralUSD, debtUSD, canBorrowUSD, canBorrowUSDC, lltv, ltv
+ *          - hf: HealthFactor with healthFactor (wei scale) and status
+ *          - variableDebt: AaveAmount containing the variable debt amount for USDC
+ *          - supplyBalances: Array of AaveAmount for each supported asset's supply balance
+ * 
+ * @dev Implementation Details:
+ *      - Builds array of Multicall3 calls for: getUserAccountData, getHealthFactor, getVariableDebt, getSupplyBalance
+ *      - Queries the LII Borrow Address configured for the chain
+ *      - Uses supportedAssets list to determine which supply balances to fetch
+ *      - Single RPC call reduces network overhead
+ * 
+ * @dev Calls Made:
+ *      [0] getUserAccountData - returns collateral, debt, borrow limits, LTV, LLTV
+ *      [1] getHealthFactor - returns health factor in wei (1e18 = HF of 1)
+ *      [2] getVariableDebt - returns variable debt for USDC
+ *      [3..N] getSupplyBalance - returns supply balance for each supported asset
+ * 
+ * @dev Performance:
+ *      - Reduces 3+N RPC calls to 1 (where N = number of supported assets)
+ *      - Uses Multicall3 aggregate3 for atomic execution
+ * 
+ * @throws Error if network is not found for the given chain selector
+ * @throws Error if multicall execution fails
+ */
+export function getPoolData(
+    runtime: Runtime<Config>,
+    chain: number
+): { 
+    accountData: PoolAccountData, 
+    hf: HealthFactor, 
+    variableDebt: AaveAmount, 
+    supplyBalances: AaveAmount[] 
+} {
+    const evmConfig = runtime.config.evms[chain];
+    const network = getNetwork({
+        chainFamily: 'evm',
+        chainSelectorName: evmConfig.chainSelectorName,
+        isTestnet: false,
+    });
+    if (!network) throw new Error(`Network not found: ${evmConfig.chainSelectorName}`);
+
+    const evmClient = new EVMClient(network.chainSelector.selector);
+    const aaveTarget = evmConfig.AaveAddress as Address;
+
+    // ── Build all calls ──
+    const calls = [
+        // [0] getPoolAccountData
+        {
+            target: aaveTarget,
+            allowFailure: false,
+            callData: encodeFunctionData({
+                abi: Aave,
+                functionName: 'getUserAccountData',
+                args: [evmConfig.liiBorrowAddress as Address],
+            }),
+        },
+        // [1] getPoolHealthFactor
+        {
+            target: aaveTarget,
+            allowFailure: false,
+            callData: encodeFunctionData({
+                abi: Aave,
+                functionName: 'getHealthFactor',
+                args: [evmConfig.liiBorrowAddress as Address],
+            }),
+        },
+        // [2] getVariableDebt (USDC)
+        {
+            target: aaveTarget,
+            allowFailure: false,
+            callData: encodeFunctionData({
+                abi: Aave,
+                functionName: 'getVariableDebt',
+                args: [evmConfig.liiBorrowAddress as Address, ASSET_DATA['USDC'].address as Address],
+            }),
+        },
+        // [3..N] getSupplyBalance for each supported asset
+        ...supportedAssets.map(asset => ({
+            target: aaveTarget,
+            allowFailure: false,
+            callData: encodeFunctionData({
+                abi: Aave,
+                functionName: 'getSupplyBalance',
+                args: [evmConfig.liiBorrowAddress as Address, ASSET_DATA[asset].address as Address],
+            }),
+        })),
+    ];
+
+    // ── Single RPC call ───────────────────────────────────────────────────────
+    const results = _executeMulticallPoolData(runtime, evmClient, calls);
+
+    // ── Decode results ────────────────────────────────────────────────────────
+    const accountDataRaw = decodeFunctionResult({ abi: Aave, functionName: 'getUserAccountData', data: results[0].returnData });
+    const hfRaw = decodeFunctionResult({ abi: Aave, functionName: 'getHealthFactor', data: results[1].returnData });
+    const debtRaw = decodeFunctionResult({ abi: Aave, functionName: 'getVariableDebt', data: results[2].returnData });
+    const supplyRaw = supportedAssets.map((_, i) =>
+        decodeFunctionResult({ abi: Aave, functionName: 'getSupplyBalance', data: results[3 + i].returnData })
+    );
+
+    return {
+        accountData: {
+            collateralUSD: accountDataRaw[0],
+            debtUSD: accountDataRaw[1],
+            canBorrowUSD: accountDataRaw[2],
+            canBorrowUSDC: accountDataRaw[3],
+            lltv: accountDataRaw[4],
+            ltv: accountDataRaw[5],
+        },
+        hf: {
+            healthFactor: hfRaw[0],
+            status: hfRaw[1],
+        },
+        variableDebt: { amount: debtRaw },
+        supplyBalances: supplyRaw.map(r => ({ amount: r })),
+    };
+}
+
+/**
+ * @notice Executes a batch of EVM calls via Multicall3 in a single RPC request
+ * @dev Internal helper that aggregates multiple contract calls into one multicall transaction
+ *      to reduce RPC overhead and improve performance
+ * @param runtime - The CRE runtime instance for state management and logging
+ * @param evmClient - EVM client instance for chain interactions
+ * @param calls - Array of call structures containing:
+ *                - target: contract address to call
+ *                - allowFailure: whether call failure should be tolerated
+ *                - callData: encoded function call data (Hex)
+ * @returns Array of result objects, each containing:
+ *          - success: boolean indicating if the call succeeded
+ *          - returnData: the returned data as Hex
+ * 
+ * @dev Implementation Details:
+ *      - Uses Multicall3's aggregate3 function for atomic batch execution
+ *      - Targets the Multicall3 contract at MULTICALL3_ADDRESS
+ *      - Executes against the latest block number
+ *      - Returns decoded results from the aggregate3 response
+ * 
+ * @dev Performance:
+ *      - Batches N calls into single network request
+ *      - Reduces latency compared to sequential calls
+ * 
+ * @throws Error if the multicall execution fails or returns invalid data
+ */
+function _executeMulticallPoolData(
+    runtime: Runtime<Config>,
+    evmClient: EVMClient,
+    calls: { target: Address, allowFailure: boolean, callData: Hex }[]
+): { success: boolean, returnData: Hex }[] {
+    const result = evmClient
+        .callContract(runtime, {
+            call: encodeCallMsg({
+                from: zeroAddress,
+                to: MULTICALL3_ADDRESS,
+                data: encodeFunctionData({
+                    abi: Multicall3,
+                    functionName: 'aggregate3',
+                    args: [calls],
+                }),
+            }),
+            blockNumber: LATEST_BLOCK_NUMBER,
+        })
+        .result();
+
+    return [...decodeFunctionResult({
+        abi: Multicall3,
+        functionName: 'aggregate3',
+        data: bytesToHex(result.data),
+    })];
 }
 
 /**
