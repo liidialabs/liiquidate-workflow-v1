@@ -17,8 +17,8 @@
 # ==========================================================================
 staging-settings:
   rpcs:
-    - chain-name: ethereum-testnet-sepolia
-      url: https://virtual.rpc.tenderly.co/mokuaxv/project/public/liiquidate-sepolia
+    - chain-name: ethereum-mainnet
+      url: https://virtual.rpc.tenderly.co/mokuaxv/project/public/liiquidate-mainnet
 
 # ==========================================================================
 production-settings:
