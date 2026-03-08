@@ -115,7 +115,7 @@ Liiquidate-flow is a proof-of-reserve style workflow that monitors borrower posi
    - `HOT_HF`: Hot threshold (1.05)
    - `WARM_HF`: Warm threshold (1.10)
 
-4. Configure supabase REST URL in `supabase.ts`:
+4. Configure supabase project REST URL in `supabase.ts`:
    - `BASE_URL`: Your Supabase project REST URL
 
 ### Running the Workflow
