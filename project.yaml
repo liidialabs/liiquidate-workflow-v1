@@ -18,7 +18,7 @@
 staging-settings:
   rpcs:
     - chain-name: ethereum-mainnet
-      url: https://virtual.rpc.tenderly.co/mokuaxv/project/public/liiquidate-mainnet
+      url: https://virtual.rpc.tenderly.co/abc/xyz
 
 # ==========================================================================
 production-settings:
